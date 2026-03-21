@@ -1,5 +1,5 @@
 import { defineConfig } from "astro/config";
-import bundleBudget from "astro-bundle-budget";
+import bundleBudget from "@shiftescape/astro-bundle-budget";
 
 export default defineConfig({
   vite: {

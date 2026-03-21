@@ -1,6 +1,6 @@
 # 📦 astro-bundle-budget-workspace
 
-Monorepo for [`astro-bundle-budget`](https://www.npmjs.com/package/astro-bundle-budget) — a build-time JS/CSS bundle size budget integration for Astro.
+Monorepo for [`astro-bundle-budget`](https://www.npmjs.com/package/@shiftescape/astro-bundle-budget) — a build-time JS/CSS bundle size budget integration for Astro.
 
 ## 📁 Structure
 
