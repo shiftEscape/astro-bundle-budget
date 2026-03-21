@@ -45,18 +45,6 @@ npm run build:demo
 npm run test:demo
 ```
 
-Add these scripts to the root `package.json`:
-
-```json
-{
-  "scripts": {
-    "build:pkg": "npm run build --workspace=packages/astro-bundle-budget",
-    "build:demo": "npm run build --workspace=demo",
-    "test:demo": "npm run build:pkg && npm run build:demo"
-  }
-}
-```
-
 ## 🧪 Running tests
 
 ```bash
