@@ -1,5 +1,7 @@
 # 📦 astro-bundle-budget
 
+[![version](https://img.shields.io/npm/v/@shiftescape/astro-bundle-budget.svg?style=flat-square)](http://npm.im/@shiftescape/astro-bundle-budget) [![downloads](https://img.shields.io/npm/dm/@shiftescape/astro-bundle-budget.svg?style=flat-square)](https://npm-stat.com/charts.html?package=@shiftescape/astro-bundle-budget&from=2016-11-24) [![MIT License](https://img.shields.io/npm/l/@shiftescape/astro-bundle-budget.svg?style=flat-square)](http://opensource.org/licenses/MIT)
+
 Build-time JS/CSS bundle size budgets for Astro. Inspect every asset and page payload at the end of `astro build` — and optionally fail CI when you exceed your thresholds. 📊
 
 ```
