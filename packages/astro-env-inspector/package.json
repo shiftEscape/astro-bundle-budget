@@ -1,6 +1,6 @@
 {
   "name": "@shiftescape/astro-env-inspector",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dev toolbar integration for Astro that shows your environment variables grouped, masked, and searchable — only active in development mode.",
   "keywords": [
     "astro",

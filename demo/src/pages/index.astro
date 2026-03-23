@@ -1,21 +1,845 @@
 ---
-import '../styles/global.css'
+// demo/src/pages/index.astro
+// Showcase page for @shiftescape/astro-bundle-budget and @shiftescape/astro-env-inspector
 ---
 
+<!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-    <h1>Bundle budget demo</h1>
-    <script>
-      console.log('hello from the demo')
-    </script>
-    <script src="../scripts/main.js"></script>
-	</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astro-integrations — @shiftescape</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      /* ── Reset & tokens ─────────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:        #080b12;
+        --bg-card:   #0d1117;
+        --bg-pill:   #161b25;
+        --border:    #1e2635;
+        --border-hi: #2a3448;
+        --text:      #e2e8f4;
+        --muted:     #5a6a8a;
+        --dim:       #8899b8;
+
+        --budget-accent: #38bdf8;
+        --budget-glow:   rgba(56,189,248,.15);
+        --budget-dim:    rgba(56,189,248,.06);
+
+        --env-accent:    #a78bfa;
+        --env-glow:      rgba(167,139,250,.15);
+        --env-dim:       rgba(167,139,250,.06);
+
+        --green:   #34d399;
+        --orange:  #f97316;
+        --red:     #f87171;
+
+        --font-display: 'IBM Plex Sans', sans-serif;
+        --font-mono:    'IBM Plex Mono', monospace;
+
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 16px;
+      }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-display);
+        font-size: 14px;
+        line-height: 1.7;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      /* ── Noise texture overlay ──────────────────────────────────────── */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ── Layout ─────────────────────────────────────────────────────── */
+      .page {
+        position: relative;
+        z-index: 1;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* ── Nav ─────────────────────────────────────────────────────────── */
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 0 20px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 0;
+      }
+
+      .nav-logo {
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+        text-decoration: none;
+        letter-spacing: -.02em;
+      }
+
+      .nav-logo span { color: var(--muted); font-weight: 400; }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        list-style: none;
+      }
+
+      .nav-links a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: var(--radius-sm);
+        transition: color .15s, background .15s;
+      }
+
+      .nav-links a:hover { color: var(--text); background: var(--bg-pill); }
+
+      /* ── Hero ────────────────────────────────────────────────────────── */
+      .hero {
+        padding: 80px 0 72px;
+        position: relative;
+      }
+
+      .hero-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg-pill);
+        border: 1px solid var(--border-hi);
+        border-radius: 100px;
+        padding: 4px 12px 4px 8px;
+        font-size: 11px;
+        color: var(--dim);
+        margin-bottom: 28px;
+        letter-spacing: .02em;
+      }
+
+      .hero-tag-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 6px var(--green);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: .4; }
+      }
+
+      .hero h1 {
+        font-family: var(--font-display);
+        font-size: clamp(36px, 6vw, 60px);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -.04em;
+        color: var(--text);
+        margin-bottom: 20px;
+      }
+
+      .hero h1 em {
+        font-style: normal;
+        background: linear-gradient(135deg, var(--budget-accent) 0%, var(--env-accent) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero-sub {
+        font-size: 15px;
+        color: var(--dim);
+        max-width: 520px;
+        line-height: 1.7;
+        margin-bottom: 36px;
+        font-family: var(--font-display);
+      }
+
+      .hero-ctas {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-family: var(--font-display);
+        font-size: 12px;
+        font-weight: 500;
+        padding: 9px 16px;
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all .15s;
+        letter-spacing: .01em;
+      }
+
+      .btn-ghost {
+        color: var(--dim);
+        border-color: var(--border-hi);
+        background: transparent;
+      }
+
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--border-hi);
+        background: var(--bg-pill);
+      }
+
+      /* ── Section header ──────────────────────────────────────────────── */
+      .section {
+        padding: 64px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .section-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .14em;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+
+      .section-title {
+        font-family: var(--font-display);
+        font-size: clamp(22px, 3vw, 30px);
+        font-weight: 700;
+        letter-spacing: -.03em;
+        color: var(--text);
+        margin-bottom: 8px;
+        line-height: 1.15;
+      }
+
+      .section-desc {
+        color: var(--dim);
+        font-size: 13px;
+        max-width: 480px;
+        margin-bottom: 40px;
+      }
+
+      /* ── Package cards ───────────────────────────────────────────────── */
+      .packages {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      @media (max-width: 640px) { .packages { grid-template-columns: 1fr; } }
+
+      .pkg-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 28px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color .2s;
+      }
+
+      .pkg-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity .3s;
+        pointer-events: none;
+      }
+
+      .pkg-card:hover { border-color: var(--border-hi); }
+      .pkg-card:hover::before { opacity: 1; }
+
+      .pkg-card.budget::before  { background: radial-gradient(ellipse at top left, var(--budget-dim), transparent 60%); }
+      .pkg-card.env::before     { background: radial-gradient(ellipse at top left, var(--env-dim), transparent 60%); }
+
+      .pkg-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        font-size: 18px;
+      }
+
+      .pkg-card.budget .pkg-icon { background: var(--budget-dim); border: 1px solid rgba(56,189,248,.2); }
+      .pkg-card.env    .pkg-icon { background: var(--env-dim);    border: 1px solid rgba(167,139,250,.2); }
+
+      .pkg-name {
+        font-family: var(--font-display);
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .pkg-card.budget .pkg-name { color: var(--budget-accent); }
+      .pkg-card.env    .pkg-name { color: var(--env-accent); }
+
+      .pkg-title {
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 10px;
+        letter-spacing: -.02em;
+        line-height: 1.2;
+      }
+
+      .pkg-desc {
+        font-size: 12px;
+        color: var(--dim);
+        line-height: 1.65;
+        margin-bottom: 20px;
+      }
+
+      .pkg-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 20px;
+      }
+
+      .pill {
+        font-size: 10px;
+        font-weight: 500;
+        padding: 3px 8px;
+        border-radius: 100px;
+        background: var(--bg-pill);
+        border: 1px solid var(--border-hi);
+        color: var(--dim);
+        letter-spacing: .02em;
+      }
+
+      .pkg-links {
+        display: flex;
+        gap: 8px;
+      }
+
+      .pkg-link {
+        font-size: 11px;
+        color: var(--muted);
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        transition: all .15s;
+      }
+
+      .pkg-link:hover { color: var(--text); border-color: var(--border-hi); background: var(--bg-pill); }
+
+      /* ── Terminal preview blocks ─────────────────────────────────────── */
+      .terminal {
+        background: #060810;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        margin-top: 40px;
+      }
+
+      .terminal-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+      }
+
+      .t-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      .t-dot.red    { background: #ff5f57; }
+      .t-dot.yellow { background: #febc2e; }
+      .t-dot.green  { background: #28c840; }
+
+      .terminal-title {
+        font-size: 11px;
+        color: var(--muted);
+        margin-left: 6px;
+        flex: 1;
+        text-align: center;
+      }
+
+      .terminal-body {
+        padding: 20px 22px;
+        font-size: 12px;
+        line-height: 1.8;
+        overflow-x: auto;
+      }
+
+      .t-comment { color: #3a4a6a; }
+      .t-key     { color: var(--budget-accent); }
+      .t-val     { color: var(--env-accent); }
+      .t-str     { color: var(--green); }
+      .t-dim     { color: var(--muted); }
+      .t-ok      { color: var(--green); font-weight: 600; }
+      .t-warn    { color: var(--orange); font-weight: 600; }
+      .t-err     { color: var(--red); font-weight: 600; }
+      .t-info    { color: var(--budget-accent); }
+      .t-label   { color: var(--env-accent); font-weight: 600; }
+
+      /* ── Feature list ────────────────────────────────────────────────── */
+      .features {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+        margin-top: 40px;
+      }
+
+      @media (max-width: 700px) { .features { grid-template-columns: 1fr 1fr; } }
+      @media (max-width: 440px) { .features { grid-template-columns: 1fr; } }
+
+      .feat {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 18px 20px;
+        transition: border-color .2s;
+      }
+
+      .feat:hover { border-color: var(--border-hi); }
+
+      .feat-icon {
+        font-size: 20px;
+        margin-bottom: 10px;
+        display: block;
+      }
+
+      .feat-title {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 5px;
+        letter-spacing: -.01em;
+      }
+
+      .feat-desc {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      /* ── Install block ───────────────────────────────────────────────── */
+      .install-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 40px;
+      }
+
+      @media (max-width: 580px) { .install-grid { grid-template-columns: 1fr; } }
+
+      .install-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+      }
+
+      .install-header {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .install-pkg {
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .install-card.budget .install-pkg { color: var(--budget-accent); }
+      .install-card.env    .install-pkg { color: var(--env-accent); }
+
+      .install-badge {
+        font-size: 9px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        padding: 2px 7px;
+        border-radius: 100px;
+        border: 1px solid var(--border-hi);
+        color: var(--muted);
+      }
+
+      .install-body {
+        padding: 14px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .install-cmd {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+      }
+
+      .install-pm {
+        font-size: 10px;
+        color: var(--muted);
+        min-width: 28px;
+      }
+
+      .install-code {
+        color: var(--text);
+        background: var(--bg-pill);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 5px 10px;
+        flex: 1;
+        font-family: var(--font-display);
+        font-size: 11px;
+        letter-spacing: -.01em;
+      }
+
+      .install-card.budget .install-code span { color: var(--budget-accent); }
+      .install-card.env    .install-code span { color: var(--env-accent); }
+
+      /* ── Footer ──────────────────────────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 32px 0 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .footer-left {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .footer-left a {
+        color: var(--dim);
+        text-decoration: none;
+      }
+
+      .footer-left a:hover { color: var(--text); }
+
+      .footer-links {
+        display: flex;
+        gap: 16px;
+        list-style: none;
+      }
+
+      .footer-links a {
+        font-size: 12px;
+        color: var(--muted);
+        text-decoration: none;
+        transition: color .15s;
+      }
+
+      .footer-links a:hover { color: var(--text); }
+    </style>
+  </head>
+
+  <body>
+    <div class="page">
+
+      <!-- Nav -->
+      <nav>
+        <a href="/" class="nav-logo">@shiftescape<span>/astro-integrations</span></a>
+        <ul class="nav-links">
+          <li><a href="https://github.com/shiftEscape" target="_blank" rel="noopener">GitHub ↗</a></li>
+          <li><a href="https://www.npmjs.com/~shiftescape" target="_blank" rel="noopener">npm ↗</a></li>
+        </ul>
+      </nav>
+
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-tag">
+          <span class="hero-tag-dot"></span>
+          2 packages · open source · MIT license
+        </div>
+        <h1>Astro integrations<br />that <em>actually help.</em></h1>
+        <p class="hero-sub">
+          A collection of focused, zero-bloat Astro integrations. Each one solves a real developer pain point — nothing more, nothing less.
+        </p>
+        <div class="hero-ctas">
+          <a href="https://github.com/shiftEscape/astro-integrations" class="btn btn-ghost" target="_blank" rel="noopener">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+          <a href="https://www.npmjs.com/~shiftescape" class="btn btn-ghost" target="_blank" rel="noopener">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M0 0v24h24V0H0zm19.2 19.2H4.8V4.8h14.4v14.4zM8 8v8h3.2V9.6h1.6V16H16V8H8z"/></svg>
+            View on npm
+          </a>
+        </div>
+      </section>
+
+      <!-- Packages -->
+      <section class="section">
+        <p class="section-label">Packages</p>
+        <h2 class="section-title">Two tools. Zero fluff.</h2>
+        <p class="section-desc">Each integration is focused, dependency-free, and designed to disappear — showing up only when you need it.</p>
+
+        <div class="packages">
+
+          <!-- Bundle Budget -->
+          <div class="pkg-card budget">
+            <div class="pkg-icon">📦</div>
+            <div class="pkg-name">@shiftescape/astro-bundle-budget</div>
+            <div class="pkg-title">Bundle Budget</div>
+            <p class="pkg-desc">Audits your JS and CSS bundle sizes at build time. Set per-file or per-page thresholds and fail CI automatically when you exceed them.</p>
+            <div class="pkg-pills">
+              <span class="pill">build-time</span>
+              <span class="pill">CI-ready</span>
+              <span class="pill">gzip/brotli</span>
+              <span class="pill">per-page</span>
+              <span class="pill">zero deps</span>
+            </div>
+            <div class="pkg-links">
+              <a href="https://www.npmjs.com/package/@shiftescape/astro-bundle-budget" target="_blank" rel="noopener" class="pkg-link">npm ↗</a>
+              <a href="https://github.com/shiftEscape/astro-bundle-budget" target="_blank" rel="noopener" class="pkg-link">docs ↗</a>
+            </div>
+          </div>
+
+          <!-- Env Inspector -->
+          <div class="pkg-card env">
+            <div class="pkg-icon">🔍</div>
+            <div class="pkg-name">@shiftescape/astro-env-inspector</div>
+            <div class="pkg-title">Env Inspector</div>
+            <p class="pkg-desc">Dev toolbar panel that shows all your environment variables — grouped, masked, and searchable. Active only in dev mode, zero production footprint.</p>
+            <div class="pkg-pills">
+              <span class="pill">dev-only</span>
+              <span class="pill">masked values</span>
+              <span class="pill">leak detection</span>
+              <span class="pill">searchable</span>
+              <span class="pill">zero deps</span>
+            </div>
+            <div class="pkg-links">
+              <a href="https://www.npmjs.com/package/@shiftescape/astro-env-inspector" target="_blank" rel="noopener" class="pkg-link">npm ↗</a>
+              <a href="https://github.com/shiftEscape/astro-env-inspector" target="_blank" rel="noopener" class="pkg-link">docs ↗</a>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Bundle Budget preview -->
+      <section class="section">
+        <p class="section-label">astro-bundle-budget</p>
+        <h2 class="section-title">Know your bundle.<br />Before it ships.</h2>
+        <p class="section-desc">Runs after every <code>astro build</code> and prints a full asset table with per-page breakdown. Set a budget and it exits 1 on violation — no CI config needed.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="t-dot red"></span>
+            <span class="t-dot yellow"></span>
+            <span class="t-dot green"></span>
+            <span class="terminal-title">astro build</span>
+          </div>
+          <div class="terminal-body">
+            <div><span class="t-dim">▶</span> <span class="t-label">astro-bundle-budget</span> <span class="t-dim">Analysing bundle...</span></div>
+            <br />
+            <div><span class="t-dim">  Asset                                      Type       Size</span></div>
+            <div><span class="t-dim">  ──────────────────────────────────────────────────────────</span></div>
+            <div><span class="t-str">  assets/vendor-CHmL3xRz.js</span>             <span class="t-dim">  js    </span><span class="t-info">18.7 kB</span></div>
+            <div><span class="t-str">  assets/index-BxK92mPq.js</span>              <span class="t-dim">  js    </span><span class="t-info">42.3 kB</span></div>
+            <div><span class="t-str">  assets/hoisted-DqW1Pz9a.js</span>            <span class="t-dim">  js    </span><span class="t-info"> 3.1 kB</span></div>
+            <div><span class="t-str">  assets/index-EpW3Kz7b.css</span>             <span class="t-dim">  css   </span><span class="t-info"> 6.4 kB</span></div>
+            <div><span class="t-dim">  ──────────────────────────────────────────────────────────</span></div>
+            <div><span class="t-dim">  Total JS</span>                               <span class="t-dim">  js    </span><span class="t-info">64.1 kB</span></div>
+            <div><span class="t-dim">  Total CSS</span>                              <span class="t-dim">  css   </span><span class="t-info"> 6.4 kB</span></div>
+            <br />
+            <div><span class="t-dim">  Budget violations</span></div>
+            <br />
+            <div><span class="t-err">  ✗</span> <span class="t-str">assets/vendor-CHmL3xRz.js</span><span class="t-dim">: 18.7 kB exceeds budget of 15 kB </span><span class="t-warn">(+25% over)</span></div>
+            <br />
+            <div><span class="t-err">  error</span>  <span class="t-dim">1 budget violation exceeded.</span></div>
+          </div>
+        </div>
+
+        <div class="features">
+          <div class="feat">
+            <span class="feat-icon">📊</span>
+            <div class="feat-title">Asset table</div>
+            <p class="feat-desc">Every JS and CSS file printed with its size after every build.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">📄</span>
+            <div class="feat-title">Per-page breakdown</div>
+            <p class="feat-desc">See exactly how much JS/CSS each page pulls in across all assets.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">🗜️</span>
+            <div class="feat-title">Compression-aware</div>
+            <p class="feat-desc">Set budgets against gzip or brotli sizes — the wire size that matters.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">🚦</span>
+            <div class="feat-title">Fails CI</div>
+            <p class="feat-desc">Exits with code 1 on violation. Works with any CI pipeline, no config.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">🎯</span>
+            <div class="feat-title">Glob rules</div>
+            <p class="feat-desc">Target vendor chunks, specific files, or all JS/CSS with minimatch globs.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">📋</span>
+            <div class="feat-title">JSON report</div>
+            <p class="feat-desc">Write a machine-readable report to diff bundle growth between deploys.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Env Inspector preview -->
+      <section class="section">
+        <p class="section-label">astro-env-inspector</p>
+        <h2 class="section-title">Your env vars,<br />always in reach.</h2>
+        <p class="section-desc">Click the key icon in the dev toolbar. Every variable from your <code>.env</code> files appears — grouped, masked, and searchable. Never leave the browser to check a variable again.</p>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="t-dot red"></span>
+            <span class="t-dot yellow"></span>
+            <span class="t-dot green"></span>
+            <span class="terminal-title">Env Inspector — dev toolbar</span>
+          </div>
+          <div class="terminal-body">
+            <div><span class="t-dim">  🌐 PUBLIC (PUBLIC_*)</span></div>
+            <div>  <span class="t-ok">●</span>  <span class="t-key">PUBLIC_SITE_NAME         </span>  <span class="t-str">My Astro Site</span></div>
+            <div>  <span class="t-ok">●</span>  <span class="t-key">PUBLIC_API_URL           </span>  <span class="t-str">https://api.example.com</span></div>
+            <div>  <span class="t-warn">●</span>  <span class="t-warn">PUBLIC_API_KEY           </span>  <span class="t-dim">••••••••</span>  <span class="t-warn">⚠ leaking</span></div>
+            <br />
+            <div><span class="t-dim">  🔒 PRIVATE / SERVER-ONLY</span></div>
+            <div>  <span class="t-ok">●</span>  <span class="t-key">DATABASE_URL             </span>  <span class="t-str">postgres://localhost/db</span></div>
+            <div>  <span class="t-ok">●</span>  <span class="t-key">STRIPE_SECRET_KEY        </span>  <span class="t-dim">••••••••</span>  <span class="t-dim">👁</span></div>
+            <div>  <span class="t-err">●</span>  <span class="t-dim">SENDGRID_API_KEY         </span>  <span class="t-dim">not set</span></div>
+            <br />
+            <div><span class="t-dim">  🚀 ASTRO BUILT-INS</span></div>
+            <div>  <span class="t-ok">●</span>  <span class="t-key">MODE                     </span>  <span class="t-str">development</span></div>
+            <div>  <span class="t-ok">●</span>  <span class="t-key">DEV                      </span>  <span class="t-str">true</span></div>
+            <div>  <span class="t-ok">●</span>  <span class="t-key">BASE_URL                 </span>  <span class="t-str">/</span></div>
+          </div>
+        </div>
+
+        <div class="features">
+          <div class="feat">
+            <span class="feat-icon">🔒</span>
+            <div class="feat-title">Dev-only</div>
+            <p class="feat-desc">Completely stripped in <code>astro build</code>. Zero production footprint, guaranteed.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">📋</span>
+            <div class="feat-title">Grouped</div>
+            <p class="feat-desc">Public, private, Astro built-ins — each in their own section for quick scanning.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">⚠️</span>
+            <div class="feat-title">Leak detection</div>
+            <p class="feat-desc">Warns when a <code>PUBLIC_*</code> var looks like it contains a secret key or token.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">👁</span>
+            <div class="feat-title">Masked by default</div>
+            <p class="feat-desc">Sensitive values hidden with a per-variable reveal toggle — safe for screen shares.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">🔍</span>
+            <div class="feat-title">Searchable</div>
+            <p class="feat-desc">Filter by key or value in real time across all variables.</p>
+          </div>
+          <div class="feat">
+            <span class="feat-icon">📋</span>
+            <div class="feat-title">Copy on click</div>
+            <p class="feat-desc">Copy any value to clipboard instantly without leaving the browser.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Install -->
+      <section class="section">
+        <p class="section-label">Get started</p>
+        <h2 class="section-title">Install in seconds.</h2>
+        <p class="section-desc">Both integrations work independently. Install only what you need.</p>
+
+        <div class="install-grid">
+          <div class="install-card budget">
+            <div class="install-header">
+              <span class="install-pkg">astro-bundle-budget</span>
+              <span class="install-badge">build-time</span>
+            </div>
+            <div class="install-body">
+              <div class="install-cmd">
+                <span class="install-pm">npm</span>
+                <div class="install-code">npm install -D <span>@shiftescape/astro-bundle-budget</span></div>
+              </div>
+              <div class="install-cmd">
+                <span class="install-pm">pnpm</span>
+                <div class="install-code">pnpm add -D <span>@shiftescape/astro-bundle-budget</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="install-card env">
+            <div class="install-header">
+              <span class="install-pkg">astro-env-inspector</span>
+              <span class="install-badge">dev toolbar</span>
+            </div>
+            <div class="install-body">
+              <div class="install-cmd">
+                <span class="install-pm">npm</span>
+                <div class="install-code">npm install -D <span>@shiftescape/astro-env-inspector</span></div>
+              </div>
+              <div class="install-cmd">
+                <span class="install-pm">pnpm</span>
+                <div class="install-code">pnpm add -D <span>@shiftescape/astro-env-inspector</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer>
+        <p class="footer-left">
+          Built by <a href="https://github.com/shiftEscape" target="_blank" rel="noopener">@shiftEscape</a> · MIT License
+        </p>
+        <ul class="footer-links">
+          <li><a href="https://github.com/shiftEscape" target="_blank" rel="noopener">GitHub</a></li>
+          <li><a href="https://www.npmjs.com/~shiftescape" target="_blank" rel="noopener">npm</a></li>
+          <li><a href="https://astro.build/integrations/" target="_blank" rel="noopener">Astro integrations</a></li>
+        </ul>
+      </footer>
+
+    </div>
+  </body>
 </html>
