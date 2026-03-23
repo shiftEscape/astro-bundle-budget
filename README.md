@@ -1,4 +1,4 @@
-# astro-integrations
+# 📦 astro-integrations
 
 A monorepo of Astro integrations by [@shiftEscape](https://github.com/shiftEscape).
 

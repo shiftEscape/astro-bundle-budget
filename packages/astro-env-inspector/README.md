@@ -1,4 +1,6 @@
-# 📦 @shiftescape/astro-env-inspector
+# @shiftescape/astro-env-inspector
+
+[![version](https://img.shields.io/npm/v/@shiftescape/astro-env-inspector.svg?style=flat-square)](http://npm.im/@shiftescape/astro-env-inspector) [![downloads](https://img.shields.io/npm/dm/@shiftescape/astro-env-inspector.svg?style=flat-square)](https://npm-stat.com/charts.html?package=@shiftescape/astro-env-inspector&from=2016-11-24) [![MIT License](https://img.shields.io/npm/l/@shiftescape/astro-env-inspector.svg?style=flat-square)](http://opensource.org/licenses/MIT)
 
 A dev toolbar integration for Astro that shows all your environment variables — grouped, masked, and searchable — directly inside `astro dev`. Zero footprint in production.
 
