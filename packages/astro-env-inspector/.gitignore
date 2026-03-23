@@ -1,0 +1,10 @@
+dist/
+dist-test/
+node_modules/
+*.tgz
+.env
+.env.local
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

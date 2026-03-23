@@ -1,4 +1,4 @@
-# 📦 astro-bundle-budget
+# 📦 @shiftescape/astro-bundle-budget
 
 [![version](https://img.shields.io/npm/v/@shiftescape/astro-bundle-budget.svg?style=flat-square)](http://npm.im/@shiftescape/astro-bundle-budget) [![downloads](https://img.shields.io/npm/dm/@shiftescape/astro-bundle-budget.svg?style=flat-square)](https://npm-stat.com/charts.html?package=@shiftescape/astro-bundle-budget&from=2016-11-24) [![MIT License](https://img.shields.io/npm/l/@shiftescape/astro-bundle-budget.svg?style=flat-square)](http://opensource.org/licenses/MIT)
 
@@ -149,7 +149,7 @@ Store this file as a CI artefact and diff it between builds to track bundle grow
 
 ## 📄 License
 
-[MIT](https://github.com/shiftEscape/astro-bundle-budget/blob/main/packages/astro-bundle-budget/LICENSE)
+[MIT](https://github.com/shiftEscape/astro-integrations/blob/main/packages/astro-bundle-budget/LICENSE)
 
 ## 🙏 Acknowledgements
 

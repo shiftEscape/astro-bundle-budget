@@ -1,31 +1,31 @@
 {
-  "name": "@shiftescape/astro-bundle-budget",
-  "version": "0.1.2",
-  "description": "Build-time JS/CSS bundle size budgets for Astro. Fails the build when pages exceed your thresholds.",
+  "name": "@shiftescape/astro-env-inspector",
+  "version": "0.1.0",
+  "description": "Dev toolbar integration for Astro that shows your environment variables grouped, masked, and searchable — only active in development mode.",
   "keywords": [
     "astro",
     "astro-integration",
     "withastro",
-    "bundle",
-    "performance",
-    "perf",
-    "budget",
-    "size",
     "dev-toolbar",
-    "tooling"
+    "env",
+    "environment",
+    "variables",
+    "tooling",
+    "developer-experience",
+    "dx"
   ],
-  "homepage": "https://github.com/shiftEscape/astro-integrations/tree/main/packages/astro-bundle-budget#readme",
-  "bugs": {
-    "url": "https://github.com/shiftescape/astro-integrations/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/shiftEscape/astro-integrations/issues"
-  },
   "author": {
     "name": "Alvin James Bellero",
     "email": "ajames.bellero@gmail.com",
     "url": "https://github.com/shiftEscape"
+  },
+  "homepage": "https://github.com/shiftEscape/astro-integrations/tree/main/packages/astro-env-inspector#readme",
+  "bugs": {
+    "url": "https://github.com/shiftEscape/astro-integrations/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shiftEscape/astro-integrations.git"
   },
   "license": "MIT",
   "type": "module",
@@ -42,7 +42,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
-    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/utils.test.js dist-test/test/check.test.js dist-test/test/integration.test.js",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/utils.test.js dist-test/test/integration.test.js",
     "prepublishOnly": "npm test && npm run build"
   },
   "peerDependencies": {
