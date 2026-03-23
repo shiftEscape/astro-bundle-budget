@@ -6,9 +6,11 @@
     "packages/*"
   ],
   "scripts": {
-    "test:pkg": "npm test --workspace=packages/astro-bundle-budget",
-    "build:pkg": "npm run build --workspace=packages/astro-bundle-budget",
+    "build:bundle-budget": "npm run build --workspace=packages/astro-bundle-budget",
+    "build:env-inspector": "npm run build --workspace=packages/astro-env-inspector",
+    "build:all": "npm run build:bundle-budget && npm run build:env-inspector",
+    "dev:demo": "npm run dev --workspace=demo",
     "build:demo": "npm run build --workspace=demo",
-    "test:demo": "npm run build:pkg && npm run build:demo"
+    "test:demo": "npm run build:all && npm run build:demo"
   }
 }

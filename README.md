@@ -1,17 +1,25 @@
-# 📦 astro-integrations
+# astro-integrations
 
-Monorepo for [`astro-bundle-budget`](https://www.npmjs.com/package/@shiftescape/astro-bundle-budget) — a build-time JS/CSS bundle size budget integration for Astro.
+A monorepo of Astro integrations by [@shiftEscape](https://github.com/shiftEscape).
 
-## 📁 Structure
+## Packages
+
+| Package                                                              | Description                                                                               | npm                                                                                                                                     |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| [`@shiftescape/astro-bundle-budget`](./packages/astro-bundle-budget) | Build-time JS/CSS bundle size budgets — fails the build when pages exceed your thresholds | [![npm](https://img.shields.io/npm/v/@shiftescape/astro-bundle-budget)](https://www.npmjs.com/package/@shiftescape/astro-bundle-budget) |
+| [`@shiftescape/astro-env-inspector`](./packages/astro-env-inspector) | Dev toolbar panel that shows your environment variables grouped, masked, and searchable   | [![npm](https://img.shields.io/npm/v/@shiftescape/astro-env-inspector)](https://www.npmjs.com/package/@shiftescape/astro-env-inspector) |
+
+## Structure
 
 ```
-astro-bundle-budget/
+astro-integrations/
 ├── packages/
-│   └── astro-bundle-budget/   # the published npm package
-└── demo/                      # local Astro site for testing the integration
+│   ├── astro-bundle-budget/   # @shiftescape/astro-bundle-budget
+│   └── astro-env-inspector/   # @shiftescape/astro-env-inspector
+└── demo/                      # shared Astro site for local testing
 ```
 
-## 🚀 Getting started
+## Getting started
 
 Install all workspace dependencies from the root:
 
@@ -19,43 +27,44 @@ Install all workspace dependencies from the root:
 npm install
 ```
 
-## ⚙️ Development workflow
+## Development workflow
 
-**Build the package** (required before testing in the demo):
+**1. Build a package** (required before testing in the demo):
 
 ```bash
-npm run build:pkg
+npm run build:bundle-budget
+npm run build:env-inspector
+# or build all at once
+npm run build:all
 ```
 
-Or keep it watching for changes in a separate terminal:
+Or keep a package watching in a separate terminal:
 
 ```bash
 cd packages/astro-bundle-budget && npm run dev
+cd packages/astro-env-inspector && npm run dev
 ```
 
-**Run the demo build** to see the integration in action:
+**2. Start the demo** to test both integrations live:
+
+```bash
+npm run dev:demo
+```
+
+**3. Test bundle budgets** (requires a full build):
 
 ```bash
 npm run build:demo
 ```
 
-**Run both in one shot:**
+## Running tests
 
 ```bash
-npm run test:demo
-```
-
-## 🧪 Running tests
-
-```bash
+# all packages
 npm test --workspace=packages/astro-bundle-budget
+npm test --workspace=packages/astro-env-inspector
 ```
 
-## 📦 Package
+## License
 
-See [`packages/astro-bundle-budget/README.md`](./packages/astro-bundle-budget/README.md) for full usage docs, options, and examples.
-
-## 📄 Links
-
-- [Sponsor Me ❤️](https://github.com/sponsors/shiftEscape)
-- [Buy me a Coffee ☕️](https://buymeacoffee.com/shiftescapealvin)
+MIT © [Alvin James Bellero](https://github.com/shiftEscape)
