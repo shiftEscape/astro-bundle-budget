@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  # ── Test all packages on every push / PR ───────────────────────────────────
+  # ── Tests ──────────────────────────────────────────────────────────────────
   test-bundle-budget:
     name: Test astro-bundle-budget (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
@@ -53,11 +53,34 @@ jobs:
       - run: npm ci
       - run: npm test --workspace=packages/astro-toolbar-routes
 
-  # ── Publish astro-bundle-budget ────────────────────────────────────────────
-  # Triggered by: release(astro-bundle-budget): vX.X.X
+  test-i18n-toolkit:
+    name: Test astro-i18n-toolkit (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["18", "20", "22"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test --workspace=packages/astro-i18n-toolkit
+
+  # ── Publish ────────────────────────────────────────────────────────────────
+  # Every publish job waits for ALL test suites.
+  # Triggered by commit message prefix: release(<package-name>): vX.X.X
+
   publish-bundle-budget:
     name: Publish astro-bundle-budget
-    needs: [test-bundle-budget, test-env-inspector, test-toolbar-routes]
+    needs:
+      [
+        test-bundle-budget,
+        test-env-inspector,
+        test-toolbar-routes,
+        test-i18n-toolkit,
+      ]
     runs-on: ubuntu-latest
     if: |
       github.ref == 'refs/heads/main' &&
@@ -76,11 +99,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # ── Publish astro-env-inspector ────────────────────────────────────────────
-  # Triggered by: release(astro-env-inspector): vX.X.X
   publish-env-inspector:
     name: Publish astro-env-inspector
-    needs: [test-bundle-budget, test-env-inspector, test-toolbar-routes]
+    needs:
+      [
+        test-bundle-budget,
+        test-env-inspector,
+        test-toolbar-routes,
+        test-i18n-toolkit,
+      ]
     runs-on: ubuntu-latest
     if: |
       github.ref == 'refs/heads/main' &&
@@ -99,11 +126,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  # ── Publish astro-toolbar-routes ───────────────────────────────────────────
-  # Triggered by: release(astro-toolbar-routes): vX.X.X
   publish-toolbar-routes:
     name: Publish astro-toolbar-routes
-    needs: [test-bundle-budget, test-env-inspector, test-toolbar-routes]
+    needs:
+      [
+        test-bundle-budget,
+        test-env-inspector,
+        test-toolbar-routes,
+        test-i18n-toolkit,
+      ]
     runs-on: ubuntu-latest
     if: |
       github.ref == 'refs/heads/main' &&
@@ -119,5 +150,32 @@ jobs:
       - run: npm run build --workspace=packages/astro-toolbar-routes
       - run: npm publish --access public
         working-directory: packages/astro-toolbar-routes
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-i18n-toolkit:
+    name: Publish astro-i18n-toolkit
+    needs:
+      [
+        test-bundle-budget,
+        test-env-inspector,
+        test-toolbar-routes,
+        test-i18n-toolkit,
+      ]
+    runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'release(astro-i18n-toolkit):')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=packages/astro-i18n-toolkit
+      - run: npm publish --access public
+        working-directory: packages/astro-i18n-toolkit
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
