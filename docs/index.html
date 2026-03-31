@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>astro-integrations — @shiftescape</title>
+    <meta
+      name="description"
+      content="A collection of focused, zero-dependency Astro integrations by @shiftEscape."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --black: #050608;
+        --card: #0a0c10;
+        --border: #16191f;
+        --bhi: #1e2330;
+        --text: #d4daf0;
+        --sub: #6b7594;
+        --dim: #363d52;
+        --sky: #38bdf8;
+        --violet: #a78bfa;
+        --emerald: #34d399;
+        --rose: #fb7185;
+        --ff: "Geist Mono", monospace;
+        --ffs: "Instrument Serif", serif;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--black);
+        color: var(--text);
+        font-family: var(--ff);
+        font-size: 14px;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.04) 2px,
+          rgba(0, 0, 0, 0.04) 4px
+        );
+      }
+
+      .glow {
+        position: fixed;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 700px;
+        height: 400px;
+        background: radial-gradient(
+          ellipse,
+          rgba(56, 189, 248, 0.04) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .page {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 28px 0 24px;
+        border-bottom: 1px solid var(--border);
+        opacity: 0;
+        animation: fade-up 0.5s 0.1s forwards;
+      }
+
+      .nav-logo {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--sky);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .nav-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--sky);
+        box-shadow: 0 0 8px var(--sky);
+        animation: blink 3s ease-in-out infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .nav-link {
+        font-size: 12px;
+        color: var(--sub);
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+      .nav-link:hover {
+        color: var(--text);
+        background: var(--border);
+      }
+
+      .hero {
+        padding: 80px 0 64px;
+        opacity: 0;
+        animation: fade-up 0.6s 0.2s forwards;
+      }
+
+      .hero-eye {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        color: var(--sub);
+        text-transform: uppercase;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hero-eye::before {
+        content: "";
+        display: inline-block;
+        width: 28px;
+        height: 1px;
+        background: var(--sky);
+        opacity: 0.5;
+      }
+
+      .hero h1 {
+        font-family: var(--ffs);
+        font-style: italic;
+        font-weight: 400;
+        font-size: clamp(38px, 6vw, 64px);
+        line-height: 0.95;
+        letter-spacing: -0.02em;
+        color: var(--text);
+        margin-bottom: 24px;
+      }
+
+      .hero h1 em {
+        font-style: normal;
+        font-family: var(--ff);
+        font-size: clamp(22px, 3.5vw, 38px);
+        font-weight: 300;
+        color: var(--sky);
+        display: block;
+        margin-top: 6px;
+      }
+
+      .hero-sub {
+        font-size: 14px;
+        color: var(--sub);
+        max-width: 440px;
+        line-height: 1.7;
+        margin-bottom: 36px;
+      }
+
+      .hero-ctas {
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        font-family: var(--ff);
+        font-size: 12px;
+        font-weight: 500;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-ghost {
+        color: var(--sub);
+        border-color: var(--bhi);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--sub);
+        background: var(--border);
+      }
+
+      /* ── package cards ── */
+      .packages {
+        padding: 64px 0;
+        border-top: 1px solid var(--border);
+        opacity: 0;
+        animation: fade-up 0.6s 0.3s forwards;
+      }
+
+      .packages-eye {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--dim);
+        margin-bottom: 32px;
+      }
+
+      .cards {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .card {
+        background: var(--card);
+        padding: 24px 26px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        text-decoration: none;
+        color: inherit;
+        transition: background 0.15s;
+        border-left: 2px solid transparent;
+      }
+      .card:hover {
+        background: #0d1017;
+      }
+      .card.sky {
+        border-left-color: var(--sky);
+      }
+      .card.violet {
+        border-left-color: var(--violet);
+      }
+      .card.emerald {
+        border-left-color: var(--emerald);
+      }
+      .card.rose {
+        border-left-color: var(--rose);
+      }
+
+      .card-body {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .card-name {
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 6px;
+      }
+      .card.sky .card-name {
+        color: var(--sky);
+      }
+      .card.violet .card-name {
+        color: var(--violet);
+      }
+      .card.emerald .card-name {
+        color: var(--emerald);
+      }
+      .card.rose .card-name {
+        color: var(--rose);
+      }
+
+      .card-desc {
+        font-size: 12px;
+        color: var(--sub);
+        line-height: 1.6;
+      }
+
+      .card-arrow {
+        font-size: 16px;
+        color: var(--dim);
+        flex-shrink: 0;
+        transition:
+          color 0.15s,
+          transform 0.15s;
+        align-self: center;
+      }
+      .card:hover .card-arrow {
+        color: var(--text);
+        transform: translateX(3px);
+      }
+
+      /* ── footer ── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 28px 0 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--dim);
+      }
+      footer a {
+        color: var(--sub);
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: var(--text);
+      }
+      .footer-links {
+        display: flex;
+        gap: 16px;
+        list-style: none;
+      }
+
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <div class="page">
+      <nav>
+        <a href="/" class="nav-logo">
+          <span class="nav-dot"></span>
+          @shiftescape
+        </a>
+        <a
+          href="https://github.com/shiftEscape/astro-integrations"
+          target="_blank"
+          rel="noopener"
+          class="nav-link"
+          >GitHub ↗</a
+        >
+      </nav>
+
+      <section class="hero">
+        <p class="hero-eye">astro-integrations</p>
+        <h1>
+          Astro integrations
+          <em>that actually help.</em>
+        </h1>
+        <p class="hero-sub">
+          Focused, zero-dependency integrations for Astro. Each one solves a
+          real developer pain point — built-in to your workflow, invisible in
+          production.
+        </p>
+        <div class="hero-ctas">
+          <a
+            href="https://github.com/shiftEscape/astro-integrations"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
+              />
+            </svg>
+            View on GitHub
+          </a>
+          <a
+            href="https://www.npmjs.com/~shiftescape"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost"
+            >npm ↗</a
+          >
+        </div>
+      </section>
+
+      <section class="packages">
+        <p class="packages-eye">packages</p>
+        <div class="cards">
+          <a href="./astro-bundle-budget/" class="card sky">
+            <div class="card-body">
+              <div class="card-name">@shiftescape/astro-bundle-budget</div>
+              <div class="card-desc">
+                Build-time JS/CSS bundle size budgets — fails the build when
+                pages exceed your thresholds
+              </div>
+            </div>
+            <span class="card-arrow">→</span>
+          </a>
+
+          <a href="./astro-env-inspector/" class="card violet">
+            <div class="card-body">
+              <div class="card-name">@shiftescape/astro-env-inspector</div>
+              <div class="card-desc">
+                Dev toolbar panel that shows your environment variables grouped,
+                masked, and searchable
+              </div>
+            </div>
+            <span class="card-arrow">→</span>
+          </a>
+
+          <a href="./astro-toolbar-routes/" class="card emerald">
+            <div class="card-body">
+              <div class="card-name">@shiftescape/astro-toolbar-routes</div>
+              <div class="card-desc">
+                Dev toolbar route map — clickable list of every route in your
+                project, grouped and searchable
+              </div>
+            </div>
+            <span class="card-arrow">→</span>
+          </a>
+
+          <a href="./astro-i18n-toolkit/" class="card rose">
+            <div class="card-body">
+              <div class="card-name">@shiftescape/astro-i18n-toolkit</div>
+              <div class="card-desc">
+                Dev toolbar i18n debugger — translation coverage map across all
+                locales and a one-click locale switcher
+              </div>
+            </div>
+            <span class="card-arrow">→</span>
+          </a>
+        </div>
+      </section>
+
+      <footer>
+        <span
+          >Built by
+          <a
+            href="https://github.com/shiftEscape"
+            target="_blank"
+            rel="noopener"
+            >@shiftEscape</a
+          >
+          · MIT License</span
+        >
+        <ul class="footer-links">
+          <li>
+            <a
+              href="https://github.com/shiftEscape/astro-integrations"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.npmjs.com/~shiftescape"
+              target="_blank"
+              rel="noopener"
+              >npm</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://astro.build/integrations/?search=%40shiftescape"
+              target="_blank"
+              rel="noopener"
+              >Astro integrations</a
+            >
+          </li>
+        </ul>
+      </footer>
+    </div>
+  </body>
+</html>

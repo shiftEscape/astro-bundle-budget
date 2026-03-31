@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      astro-bundle-budget — Build-time bundle size budgets for Astro
+    </title>
+    <meta
+      name="description"
+      content="Inspect every JS and CSS asset after astro build. Set per-file and per-page thresholds. Fail CI automatically when you go over."
+    />
+    <meta property="og:title" content="astro-bundle-budget" />
+    <meta
+      property="og:description"
+      content="Build-time bundle size budgets for Astro."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --black: #050608;
+        --card: #0a0c10;
+        --border: #16191f;
+        --border2: #1e2330;
+        --text: #d4daf0;
+        --sub: #6b7594;
+        --dim: #363d52;
+        --sky: #38bdf8;
+        --sky-dim: rgba(56, 189, 248, 0.08);
+        --green: #4ade80;
+        --red: #f87171;
+        --amber: #fbbf24;
+        --ff: "Geist Mono", monospace;
+        --ffs: "Instrument Serif", serif;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--black);
+        color: var(--text);
+        font-family: var(--ff);
+        font-size: 14px;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* ── scanline texture ── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.04) 2px,
+          rgba(0, 0, 0, 0.04) 4px
+        );
+      }
+
+      /* ── top glow ── */
+      .glow {
+        position: fixed;
+        top: -120px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 600px;
+        height: 400px;
+        background: radial-gradient(
+          ellipse,
+          rgba(56, 189, 248, 0.05) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .page {
+        position: relative;
+        z-index: 1;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* ── nav ── */
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 28px 0 24px;
+        border-bottom: 1px solid var(--border);
+        opacity: 0;
+        animation: fade-up 0.5s 0.1s forwards;
+      }
+
+      .nav-logo {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--sky);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .nav-logo-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--sky);
+        box-shadow: 0 0 8px var(--sky);
+        animation: blink 3s ease-in-out infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 4px;
+        list-style: none;
+      }
+
+      .nav-links a {
+        font-size: 12px;
+        color: var(--sub);
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+      .nav-links a:hover {
+        color: var(--text);
+        background: var(--border);
+      }
+
+      /* ── hero ── */
+      .hero {
+        padding: 80px 0 72px;
+        opacity: 0;
+        animation: fade-up 0.6s 0.2s forwards;
+      }
+
+      .hero-eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        color: var(--sub);
+        text-transform: uppercase;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .hero-eyebrow::before {
+        content: "";
+        display: inline-block;
+        width: 28px;
+        height: 1px;
+        background: var(--sky);
+        opacity: 0.6;
+      }
+
+      .hero h1 {
+        font-family: var(--ffs);
+        font-size: clamp(42px, 7vw, 76px);
+        font-weight: 400;
+        font-style: italic;
+        line-height: 0.95;
+        letter-spacing: -0.02em;
+        color: var(--text);
+        margin-bottom: 28px;
+      }
+
+      .hero h1 span {
+        font-style: normal;
+        font-family: var(--ff);
+        font-size: clamp(28px, 4.5vw, 52px);
+        font-weight: 300;
+        color: var(--sky);
+        display: block;
+        margin-top: 4px;
+      }
+
+      .hero-sub {
+        font-size: 15px;
+        color: var(--sub);
+        max-width: 480px;
+        line-height: 1.7;
+        margin-bottom: 40px;
+        font-family: var(--ff);
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        font-family: var(--ff);
+        font-size: 12px;
+        font-weight: 500;
+        padding: 9px 18px;
+        border-radius: 6px;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .btn-primary {
+        background: var(--sky);
+        color: #03070e;
+        border-color: var(--sky);
+      }
+      .btn-primary:hover {
+        background: #7dd3fc;
+        border-color: #7dd3fc;
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--sub);
+        border-color: var(--border2);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--sub);
+        background: var(--border);
+      }
+
+      /* ── terminal ── */
+      .terminal-wrap {
+        margin: 48px 0;
+        opacity: 0;
+        animation: fade-up 0.6s 0.35s forwards;
+      }
+
+      .terminal {
+        background: #020305;
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow:
+          0 0 0 1px rgba(56, 189, 248, 0.04),
+          0 24px 64px rgba(0, 0, 0, 0.6);
+      }
+
+      .t-bar {
+        background: var(--card);
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      .t-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+      .t-dot.r {
+        background: #ff5f57;
+      }
+      .t-dot.y {
+        background: #febc2e;
+      }
+      .t-dot.g {
+        background: #28c840;
+      }
+
+      .t-title {
+        font-size: 11px;
+        color: var(--dim);
+        margin-left: 8px;
+        flex: 1;
+        text-align: center;
+      }
+
+      .t-body {
+        padding: 22px 26px;
+        font-size: 12.5px;
+        line-height: 1.9;
+        overflow-x: auto;
+      }
+
+      .c-sky {
+        color: var(--sky);
+      }
+      .c-green {
+        color: var(--green);
+      }
+      .c-red {
+        color: var(--red);
+      }
+      .c-amber {
+        color: var(--amber);
+      }
+      .c-dim {
+        color: var(--dim);
+      }
+      .c-sub {
+        color: var(--sub);
+      }
+      .c-bold {
+        font-weight: 600;
+      }
+
+      /* typing cursor on last line */
+      .cursor::after {
+        content: "█";
+        color: var(--sky);
+        animation: cursor-blink 0.9s step-end infinite;
+      }
+      @keyframes cursor-blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+      }
+
+      /* ── divider ── */
+      .section {
+        padding: 72px 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .section-eyebrow {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--dim);
+        margin-bottom: 16px;
+      }
+
+      .section-title {
+        font-family: var(--ffs);
+        font-style: italic;
+        font-size: clamp(24px, 3vw, 34px);
+        font-weight: 400;
+        line-height: 1.1;
+        color: var(--text);
+        margin-bottom: 10px;
+      }
+
+      .section-desc {
+        font-size: 13px;
+        color: var(--sub);
+        max-width: 480px;
+        margin-bottom: 44px;
+        line-height: 1.7;
+      }
+
+      /* ── feature grid ── */
+      .features {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      @media (max-width: 640px) {
+        .features {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .feat {
+        background: var(--card);
+        padding: 24px 22px;
+        transition: background 0.2s;
+      }
+      .feat:hover {
+        background: #0d1017;
+      }
+
+      .feat-num {
+        font-size: 10px;
+        color: var(--sky);
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        margin-bottom: 10px;
+      }
+
+      .feat-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 6px;
+        letter-spacing: -0.01em;
+      }
+
+      .feat-desc {
+        font-size: 12px;
+        color: var(--sub);
+        line-height: 1.65;
+      }
+
+      /* ── options table ── */
+      .opts-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      .opts-table th {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+        text-align: left;
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .opts-table td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        line-height: 1.55;
+      }
+      .opts-table tr:last-child td {
+        border-bottom: none;
+      }
+      .opts-table tr:hover td {
+        background: var(--card);
+      }
+
+      .td-name {
+        color: var(--sky);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .td-type {
+        color: var(--amber);
+      }
+      .td-def {
+        color: var(--sub);
+      }
+      .td-desc {
+        color: var(--sub);
+      }
+
+      /* ── install block ── */
+      .install-block {
+        background: var(--card);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .install-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+      .install-row:last-child {
+        border-bottom: none;
+      }
+
+      .install-pm {
+        font-size: 11px;
+        color: var(--dim);
+        min-width: 32px;
+      }
+
+      .install-cmd {
+        font-size: 12px;
+        color: var(--text);
+        flex: 1;
+      }
+      .install-cmd span {
+        color: var(--sky);
+      }
+
+      .copy-btn {
+        font-family: var(--ff);
+        font-size: 10px;
+        color: var(--dim);
+        background: transparent;
+        border: 1px solid var(--border2);
+        border-radius: 4px;
+        padding: 3px 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .copy-btn:hover {
+        color: var(--text);
+        border-color: var(--sub);
+      }
+      .copy-btn.copied {
+        color: var(--green);
+        border-color: var(--green);
+      }
+
+      /* ── footer ── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 32px 0 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--dim);
+      }
+      footer a {
+        color: var(--sub);
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: var(--text);
+      }
+      .footer-links {
+        display: flex;
+        gap: 18px;
+        list-style: none;
+      }
+
+      /* ── animations ── */
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .fade-up {
+        opacity: 0;
+      }
+      .fade-up.visible {
+        animation: fade-up 0.55s ease forwards;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+
+    <div class="page">
+      <!-- Nav -->
+      <nav>
+        <a href="/" class="nav-logo">
+          <span class="nav-logo-dot"></span>
+          astro-bundle-budget
+        </a>
+        <ul class="nav-links">
+          <li><a href="#features">features</a></li>
+          <li><a href="#options">options</a></li>
+          <li><a href="#install">install</a></li>
+          <li>
+            <a
+              href="https://github.com/shiftEscape/astro-bundle-budget"
+              target="_blank"
+              rel="noopener"
+              >github ↗</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.npmjs.com/package/@shiftescape/astro-bundle-budget"
+              target="_blank"
+              rel="noopener"
+              >npm ↗</a
+            >
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Hero -->
+      <section class="hero">
+        <p class="hero-eyebrow">@shiftescape/astro-bundle-budget</p>
+        <h1>
+          Know your bundle.
+          <span>Before it ships.</span>
+        </h1>
+        <p class="hero-sub">
+          Build-time JS/CSS budget enforcement for Astro. Inspect every asset,
+          set per-file and per-page thresholds, and fail CI automatically when
+          you go over.
+        </p>
+        <div class="hero-actions">
+          <a href="#install" class="btn btn-primary">
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Install
+          </a>
+          <a
+            href="https://github.com/shiftEscape/astro-bundle-budget"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
+              />
+            </svg>
+            GitHub
+          </a>
+          <a
+            href="https://www.npmjs.com/package/@shiftescape/astro-bundle-budget"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost"
+            >npm ↗</a
+          >
+        </div>
+      </section>
+
+      <!-- Terminal demo -->
+      <div class="terminal-wrap">
+        <div class="terminal">
+          <div class="t-bar">
+            <span class="t-dot r"></span>
+            <span class="t-dot y"></span>
+            <span class="t-dot g"></span>
+            <span class="t-title">astro build</span>
+          </div>
+          <div class="t-body">
+            <div>
+              <span class="c-sky c-bold">▶</span>
+              <span class="c-sky">astro-bundle-budget</span>
+              <span class="c-dim">Analysing bundle…</span>
+            </div>
+            <br />
+            <div><span class="c-dim"> Asset Type Size</span></div>
+            <div>
+              <span class="c-dim">
+                ────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div>
+              <span class="c-green">assets/vendor-CHmL3xRz.js</span>
+              <span class="c-dim">js </span> <span>18.7 kB</span>
+            </div>
+            <div>
+              <span class="c-green">assets/index-BxK92mPq.js</span>
+              <span class="c-dim">js </span> <span>42.3 kB</span>
+            </div>
+            <div>
+              <span class="c-green">assets/hoisted-DqW1Pz9a.js</span>
+              <span class="c-dim">js </span> <span> 3.1 kB</span>
+            </div>
+            <div>
+              <span class="c-green">assets/index-EpW3Kz7b.css</span>
+              <span class="c-dim">css </span> <span> 6.4 kB</span>
+            </div>
+            <div>
+              <span class="c-dim">
+                ────────────────────────────────────────────────────────────────────</span
+              >
+            </div>
+            <div>
+              <span class="c-dim"> Total JS</span> <span class="c-dim">js </span
+              ><span>64.1 kB</span>
+            </div>
+            <div>
+              <span class="c-dim"> Total CSS</span>
+              <span class="c-dim">css </span><span> 6.4 kB</span>
+            </div>
+            <br />
+            <div><span class="c-dim"> Budget violations</span></div>
+            <br />
+            <div>
+              <span class="c-red c-bold">✗</span>
+              <span class="c-red">assets/vendor-CHmL3xRz.js</span
+              ><span class="c-dim">: 18.7 kB exceeds budget of 15 kB </span
+              ><span class="c-amber">(+25% over)</span>
+            </div>
+            <br />
+            <div>
+              <span class="c-red c-bold">error</span>
+              <span class="c-dim">1 budget violation. Build failed.</span>
+              <span class="cursor"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features -->
+      <section class="section fade-up" id="features">
+        <p class="section-eyebrow">features</p>
+        <h2 class="section-title">Everything you need to enforce a budget.</h2>
+        <p class="section-desc">
+          Zero runtime cost — the entire audit happens at build time.
+        </p>
+
+        <div class="features">
+          <div class="feat">
+            <div class="feat-num">01</div>
+            <div class="feat-title">Asset table</div>
+            <p class="feat-desc">
+              Every JS and CSS file printed with its exact size after every
+              <code style="color: var(--sky)">astro build</code>.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">02</div>
+            <div class="feat-title">Per-file budgets</div>
+            <p class="feat-desc">
+              Target individual files or groups with minimatch glob patterns.
+              First matching rule wins.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">03</div>
+            <div class="feat-title">Per-page budgets</div>
+            <p class="feat-desc">
+              Measure the total JS or CSS payload each generated HTML page
+              references across all its assets.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">04</div>
+            <div class="feat-title">Compression-aware</div>
+            <p class="feat-desc">
+              Set budgets against gzip or brotli — the wire size that actually
+              matters to your users.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">05</div>
+            <div class="feat-title">Fails CI</div>
+            <p class="feat-desc">
+              Exits with code 1 on violation. Works with any CI pipeline.
+              Disable with
+              <code style="color: var(--sky)">failOnExceed: false</code>.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">06</div>
+            <div class="feat-title">JSON report</div>
+            <p class="feat-desc">
+              Write a machine-readable report to diff bundle growth between
+              deploys and track trends over time.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Options -->
+      <section class="section fade-up" id="options">
+        <p class="section-eyebrow">configuration</p>
+        <h2 class="section-title">Minimal config, precise control.</h2>
+        <p class="section-desc">
+          Add the integration with no options for a free asset table. Add rules
+          when you're ready to enforce.
+        </p>
+
+        <div class="terminal" style="margin-bottom: 36px">
+          <div class="t-bar">
+            <span class="t-dot r"></span><span class="t-dot y"></span
+            ><span class="t-dot g"></span>
+            <span class="t-title">astro.config.mjs</span>
+          </div>
+          <div class="t-body">
+            <pre><span class="c-sub">import</span> { defineConfig } <span class="c-sub">from</span> <span class="c-green">'astro/config'</span>
+<span class="c-sub">import</span> bundleBudget <span class="c-sub">from</span> <span class="c-green">'@shiftescape/astro-bundle-budget'</span>
+
+<span class="c-sub">export default</span> defineConfig({
+  integrations: [
+    bundleBudget({
+      <span class="c-dim">// per-file rules — first matching glob wins</span>
+      budgets: [
+        { path: <span class="c-green">'assets/vendor-*.js'</span>, budget: <span class="c-amber">'50 kB'</span> },
+        { path: <span class="c-green">'**/*.js'</span>,            budget: <span class="c-amber">'100 kB'</span> },
+        { path: <span class="c-green">'**/*.css'</span>,           budget: <span class="c-amber">'20 kB'</span> },
+      ],
+      <span class="c-dim">// per-page payload limits</span>
+      pageBudgets: [
+        { type: <span class="c-green">'js'</span>,    budget: <span class="c-amber">'150 kB'</span> },
+        { type: <span class="c-green">'total'</span>, budget: <span class="c-amber">'200 kB'</span>, compression: <span class="c-green">'gzip'</span> },
+      ],
+    }),
+  ],
+})</pre>
+          </div>
+        </div>
+
+        <table class="opts-table">
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-name">budgets</td>
+              <td class="td-type">BudgetRule[]</td>
+              <td class="td-def">[]</td>
+              <td class="td-desc">
+                Per-file glob rules. Each rule sets a max size for matching
+                assets.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-name">pageBudgets</td>
+              <td class="td-type">PageBudget[]</td>
+              <td class="td-def">[]</td>
+              <td class="td-desc">
+                Per-page payload limits — total JS, CSS, or combined across a
+                single HTML page.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-name">failOnExceed</td>
+              <td class="td-type">boolean</td>
+              <td class="td-def">true</td>
+              <td class="td-desc">
+                Exit 1 when a budget is exceeded. Set to false to warn but never
+                fail.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-name">compression</td>
+              <td class="td-type">'none' | 'gzip' | 'brotli'</td>
+              <td class="td-def">'none'</td>
+              <td class="td-desc">
+                Measure compressed size per rule. Applies to both file and page
+                budgets.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-name">report</td>
+              <td class="td-type">boolean</td>
+              <td class="td-def">false</td>
+              <td class="td-desc">
+                Write a JSON report to outDir for CI diffing and build trend
+                tracking.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-name">reportPath</td>
+              <td class="td-type">string</td>
+              <td class="td-def">'bundle-budget-report.json'</td>
+              <td class="td-desc">
+                Filename for the JSON report, relative to outDir.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-name">verbose</td>
+              <td class="td-type">boolean</td>
+              <td class="td-def">false</td>
+              <td class="td-desc">
+                Show every asset and per-page breakdown in the build output.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Install -->
+      <section class="section fade-up" id="install">
+        <p class="section-eyebrow">install</p>
+        <h2 class="section-title">Zero config to get started.</h2>
+        <p class="section-desc">
+          Add the integration — an asset table appears in every build output
+          immediately.
+        </p>
+
+        <div class="install-block">
+          <div class="install-row">
+            <span class="install-pm">npm</span>
+            <span class="install-cmd"
+              >npm install -D
+              <span>@shiftescape/astro-bundle-budget</span></span
+            >
+            <button
+              class="copy-btn"
+              data-copy="npm install -D @shiftescape/astro-bundle-budget"
+            >
+              copy
+            </button>
+          </div>
+          <div class="install-row">
+            <span class="install-pm">pnpm</span>
+            <span class="install-cmd"
+              >pnpm add -D <span>@shiftescape/astro-bundle-budget</span></span
+            >
+            <button
+              class="copy-btn"
+              data-copy="pnpm add -D @shiftescape/astro-bundle-budget"
+            >
+              copy
+            </button>
+          </div>
+          <div class="install-row">
+            <span class="install-pm">yarn</span>
+            <span class="install-cmd"
+              >yarn add -D <span>@shiftescape/astro-bundle-budget</span></span
+            >
+            <button
+              class="copy-btn"
+              data-copy="yarn add -D @shiftescape/astro-bundle-budget"
+            >
+              copy
+            </button>
+          </div>
+        </div>
+
+        <div class="terminal" style="margin-top: 24px">
+          <div class="t-bar">
+            <span class="t-dot r"></span><span class="t-dot y"></span
+            ><span class="t-dot g"></span>
+            <span class="t-title">zero-config usage</span>
+          </div>
+          <div class="t-body">
+            <pre><span class="c-sub">import</span> bundleBudget <span class="c-sub">from</span> <span class="c-green">'@shiftescape/astro-bundle-budget'</span>
+
+<span class="c-sub">export default</span> defineConfig({
+  integrations: [bundleBudget()]  <span class="c-dim">// asset table in every build</span>
+})</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer>
+        <span>
+          Built by
+          <a
+            href="https://github.com/shiftEscape"
+            target="_blank"
+            rel="noopener"
+            >@shiftEscape</a
+          >
+          · MIT License
+        </span>
+        <ul class="footer-links">
+          <li>
+            <a
+              href="https://github.com/shiftEscape/astro-bundle-budget"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.npmjs.com/package/@shiftescape/astro-bundle-budget"
+              target="_blank"
+              rel="noopener"
+              >npm</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://astro.build/integrations/?search=%40shiftescape"
+              target="_blank"
+              rel="noopener"
+              >Astro integrations</a
+            >
+          </li>
+        </ul>
+      </footer>
+    </div>
+
+    <script>
+      // Copy buttons
+      document.querySelectorAll(".copy-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const text = btn.dataset.copy;
+          navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = "copied!";
+            btn.classList.add("copied");
+            setTimeout(() => {
+              btn.textContent = "copy";
+              btn.classList.remove("copied");
+            }, 2000);
+          });
+        });
+      });
+
+      // Scroll-triggered fade-ups
+      const observer = new IntersectionObserver(
+        (entries) =>
+          entries.forEach((e) => {
+            if (e.isIntersecting) e.target.classList.add("visible");
+          }),
+        { threshold: 0.08 },
+      );
+      document
+        .querySelectorAll(".fade-up")
+        .forEach((el) => observer.observe(el));
+    </script>
+  </body>
+</html>
