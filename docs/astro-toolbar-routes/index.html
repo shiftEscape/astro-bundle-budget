@@ -1,0 +1,1006 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      astro-toolbar-routes — Live route map in your Astro dev toolbar
+    </title>
+    <meta
+      name="description"
+      content="A clickable, searchable live route map for every page in your Astro project — directly in the dev toolbar."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Sora:wght@200;300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --black: #03050f;
+        --card: #060914;
+        --border: #0e1428;
+        --border2: #162038;
+        --text: #ccd6f8;
+        --sub: #4a5e9a;
+        --dim: #253050;
+        --blue: #60a5fa;
+        --blue-hi: #93c5fd;
+        --indigo: #818cf8;
+        --emerald: #34d399;
+        --amber: #fbbf24;
+        --red: #f87171;
+        --ff: "Space Mono", monospace;
+        --ffs: "Sora", sans-serif;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--black);
+        color: var(--text);
+        font-family: var(--ff);
+        font-size: 14px;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* star-field dots */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background-image: radial-gradient(circle, #162038 1px, transparent 1px);
+        background-size: 28px 28px;
+        opacity: 0.5;
+      }
+
+      .glow {
+        position: fixed;
+        top: -80px;
+        right: -60px;
+        width: 500px;
+        height: 400px;
+        background: radial-gradient(
+          ellipse,
+          rgba(96, 165, 250, 0.05) 0%,
+          transparent 65%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .page {
+        position: relative;
+        z-index: 1;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 28px 0 24px;
+        border-bottom: 1px solid var(--border);
+        opacity: 0;
+        animation: fade-up 0.5s 0.1s forwards;
+      }
+
+      .nav-logo {
+        font-family: var(--ff);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--blue);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .nav-ping {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 8px var(--blue);
+        animation: ping 2s ease-in-out infinite;
+      }
+      @keyframes ping {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.3);
+          opacity: 0.5;
+        }
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 4px;
+        list-style: none;
+      }
+      .nav-links a {
+        font-family: var(--ff);
+        font-size: 11px;
+        color: var(--sub);
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+      .nav-links a:hover {
+        color: var(--text);
+        background: var(--border2);
+      }
+
+      .hero {
+        padding: 80px 0 64px;
+        opacity: 0;
+        animation: fade-up 0.6s 0.2s forwards;
+      }
+
+      .hero-eye {
+        font-family: var(--ff);
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        color: var(--sub);
+        text-transform: uppercase;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hero-eye::before {
+        content: "";
+        display: inline-block;
+        width: 28px;
+        height: 1px;
+        background: var(--blue);
+        opacity: 0.4;
+      }
+
+      .hero h1 {
+        font-family: var(--ffs);
+        font-weight: 200;
+        font-size: clamp(40px, 7vw, 72px);
+        line-height: 0.95;
+        letter-spacing: -0.03em;
+        color: var(--text);
+        margin-bottom: 28px;
+      }
+      .hero h1 span {
+        font-weight: 600;
+        color: var(--blue-hi);
+        display: block;
+        margin-top: 8px;
+      }
+
+      .hero-sub {
+        font-family: var(--ffs);
+        font-size: 15px;
+        color: var(--sub);
+        max-width: 460px;
+        line-height: 1.7;
+        margin-bottom: 36px;
+        font-weight: 300;
+      }
+      .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        font-family: var(--ff);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 9px 18px;
+        border-radius: 6px;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .btn-primary {
+        background: var(--blue);
+        color: #020510;
+        border-color: var(--blue);
+      }
+      .btn-primary:hover {
+        background: var(--blue-hi);
+        border-color: var(--blue-hi);
+      }
+      .btn-ghost {
+        color: var(--sub);
+        border-color: var(--border2);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--sub);
+        background: var(--border);
+      }
+
+      .terminal {
+        background: #010308;
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow:
+          0 0 0 1px rgba(96, 165, 250, 0.04),
+          0 24px 64px rgba(0, 0, 0, 0.7);
+        margin: 48px 0;
+        opacity: 0;
+        animation: fade-up 0.6s 0.35s forwards;
+      }
+      .t-bar {
+        background: var(--card);
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .t-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+      .t-dot.r {
+        background: #ff5f57;
+      }
+      .t-dot.y {
+        background: #febc2e;
+      }
+      .t-dot.g {
+        background: #28c840;
+      }
+      .t-title {
+        font-size: 11px;
+        color: var(--dim);
+        margin-left: 8px;
+        flex: 1;
+        text-align: center;
+        font-family: var(--ff);
+      }
+      .t-body {
+        padding: 22px 26px;
+        font-size: 12.5px;
+        line-height: 1.9;
+        overflow-x: auto;
+      }
+
+      .c-b {
+        color: var(--blue);
+      }
+      .c-bh {
+        color: var(--blue-hi);
+      }
+      .c-i {
+        color: var(--indigo);
+      }
+      .c-e {
+        color: var(--emerald);
+      }
+      .c-a {
+        color: var(--amber);
+      }
+      .c-r {
+        color: var(--red);
+      }
+      .c-d {
+        color: var(--dim);
+      }
+      .c-s {
+        color: var(--sub);
+      }
+      .bld {
+        font-weight: 700;
+      }
+
+      .section {
+        padding: 72px 0;
+        border-top: 1px solid var(--border);
+      }
+      .eye {
+        font-family: var(--ff);
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--dim);
+        margin-bottom: 16px;
+      }
+      .sec-title {
+        font-family: var(--ffs);
+        font-weight: 200;
+        font-size: clamp(24px, 3vw, 34px);
+        line-height: 1.1;
+        color: var(--text);
+        margin-bottom: 10px;
+      }
+      .sec-desc {
+        font-family: var(--ffs);
+        font-size: 14px;
+        color: var(--sub);
+        max-width: 480px;
+        margin-bottom: 44px;
+        line-height: 1.7;
+        font-weight: 300;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      @media (max-width: 640px) {
+        .features {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .feat {
+        background: var(--card);
+        padding: 22px 20px;
+        transition: background 0.2s;
+      }
+      .feat:hover {
+        background: #080c1a;
+      }
+      .feat-num {
+        font-size: 10px;
+        color: var(--blue);
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-bottom: 10px;
+        font-family: var(--ff);
+      }
+      .feat-title {
+        font-family: var(--ffs);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .feat-desc {
+        font-family: var(--ffs);
+        font-size: 12px;
+        color: var(--sub);
+        line-height: 1.65;
+        font-weight: 300;
+      }
+
+      .route-types {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .rt-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+      .rt-row:last-child {
+        border-bottom: none;
+      }
+      .rt-row:hover {
+        background: var(--card);
+      }
+      .rt-tag {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 100px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .rt-tag.none {
+        background: var(--border2);
+        color: var(--sub);
+      }
+      .rt-tag.dyn {
+        background: rgba(251, 191, 36, 0.1);
+        color: var(--amber);
+        border: 0.5px solid rgba(251, 191, 36, 0.3);
+      }
+      .rt-tag.ssr {
+        background: rgba(248, 113, 113, 0.1);
+        color: var(--red);
+        border: 0.5px solid rgba(248, 113, 113, 0.3);
+      }
+      .rt-tag.ep {
+        background: rgba(96, 165, 250, 0.1);
+        color: var(--blue);
+        border: 0.5px solid rgba(96, 165, 250, 0.3);
+      }
+      .rt-desc {
+        font-family: var(--ffs);
+        font-size: 13px;
+        color: var(--sub);
+        line-height: 1.55;
+        font-weight: 300;
+      }
+
+      .opts {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .opts th {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+        text-align: left;
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--ff);
+      }
+      .opts td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        line-height: 1.55;
+      }
+      .opts tr:last-child td {
+        border-bottom: none;
+      }
+      .opts tr:hover td {
+        background: var(--card);
+      }
+      .td-n {
+        color: var(--blue);
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .td-t {
+        color: var(--amber);
+        font-family: var(--ff);
+        font-size: 11px;
+      }
+      .td-d {
+        color: var(--sub);
+        font-family: var(--ffs);
+        font-weight: 300;
+      }
+
+      .install-block {
+        background: var(--card);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .install-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+      .install-row:last-child {
+        border-bottom: none;
+      }
+      .install-pm {
+        font-size: 11px;
+        color: var(--dim);
+        min-width: 32px;
+        font-family: var(--ff);
+      }
+      .install-cmd {
+        font-size: 12px;
+        color: var(--text);
+        flex: 1;
+      }
+      .install-cmd span {
+        color: var(--blue);
+      }
+      .copy-btn {
+        font-family: var(--ff);
+        font-size: 10px;
+        color: var(--dim);
+        background: transparent;
+        border: 1px solid var(--border2);
+        border-radius: 4px;
+        padding: 3px 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .copy-btn:hover {
+        color: var(--text);
+        border-color: var(--sub);
+      }
+      .copy-btn.copied {
+        color: var(--blue);
+        border-color: var(--blue);
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 32px 0 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 11px;
+        color: var(--dim);
+        font-family: var(--ff);
+      }
+      footer a {
+        color: var(--sub);
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: var(--text);
+      }
+      .footer-links {
+        display: flex;
+        gap: 18px;
+        list-style: none;
+      }
+
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .fade-up {
+        opacity: 0;
+      }
+      .fade-up.visible {
+        animation: fade-up 0.55s ease forwards;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <div class="page">
+      <nav>
+        <a href="../" class="nav-logo"
+          ><span class="nav-ping"></span>astro-toolbar-routes</a
+        >
+        <ul class="nav-links">
+          <li><a href="#features">features</a></li>
+          <li><a href="#options">options</a></li>
+          <li><a href="#install">install</a></li>
+          <li>
+            <a
+              href="https://github.com/shiftEscape/astro-toolbar-routes"
+              target="_blank"
+              rel="noopener"
+              >github ↗</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.npmjs.com/package/@shiftescape/astro-toolbar-routes"
+              target="_blank"
+              rel="noopener"
+              >npm ↗</a
+            >
+          </li>
+        </ul>
+      </nav>
+
+      <section class="hero">
+        <p class="hero-eye">@shiftescape/astro-toolbar-routes</p>
+        <h1>Every route,<span>one click away.</span></h1>
+        <p class="hero-sub">
+          Live, clickable route map of your entire Astro project — right in the
+          dev toolbar. No more typing URLs by hand.
+        </p>
+        <div class="hero-actions">
+          <a href="#install" class="btn btn-primary">Install</a>
+          <a
+            href="https://github.com/shiftEscape/astro-toolbar-routes"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost"
+            >GitHub ↗</a
+          >
+          <a
+            href="https://www.npmjs.com/package/@shiftescape/astro-toolbar-routes"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost"
+            >npm ↗</a
+          >
+        </div>
+      </section>
+
+      <div class="terminal">
+        <div class="t-bar">
+          <span class="t-dot r"></span><span class="t-dot y"></span
+          ><span class="t-dot g"></span>
+          <span class="t-title">Route Map — dev toolbar</span>
+        </div>
+        <div class="t-body">
+          <div>
+            <span class="c-e bld">● 7 static</span>
+            <span class="c-r">● 1 SSR</span>
+            <span class="c-d">● 1 endpoint</span>
+            <span class="c-d">· 9 total</span>
+          </div>
+          <br />
+          <div><span class="c-d"> 📄 PAGES</span></div>
+          <div>
+            <span class="c-e bld">●</span> <span class="c-bh">/ </span>
+            <span class="c-d">→</span>
+          </div>
+          <div>
+            <span class="c-e bld">●</span> <span class="c-bh">/about </span>
+            <span class="c-d">→</span>
+          </div>
+          <div>
+            <span class="c-e bld">●</span> <span class="c-bh">/blog </span>
+            <span class="c-d">→</span>
+          </div>
+          <div>
+            <span class="c-e bld">●</span>
+            <span class="c-a">/blog/[slug] </span>
+            <span class="c-a">dynamic</span> <span class="c-r">SSR</span>
+          </div>
+          <div>
+            <span class="c-e bld">●</span> <span class="c-bh">/contact </span>
+            <span class="c-d">→</span>
+          </div>
+          <div>
+            <span class="c-e bld">●</span> <span class="c-bh">/pricing </span>
+            <span class="c-d">→</span>
+          </div>
+          <div>
+            <span class="c-e bld">●</span> <span class="c-bh">/rss.xml </span>
+            <span class="c-d">→</span>
+          </div>
+          <br />
+          <div><span class="c-d"> ⚡ ENDPOINTS</span></div>
+          <div>
+            <span class="c-e bld">●</span>
+            <span class="c-bh">/api/contact </span>
+            <span class="c-b">endpoint</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="section fade-up" id="features">
+        <p class="eye">features</p>
+        <h2 class="sec-title">Your whole project, mapped.</h2>
+        <p class="sec-desc">
+          Built on Astro's
+          <code
+            style="font-family: var(--ff); font-size: 11px; color: var(--blue)"
+            >astro:routes:resolved</code
+          >
+          hook — every route, always accurate.
+        </p>
+        <div class="features">
+          <div class="feat">
+            <div class="feat-num">01</div>
+            <div class="feat-title">Click to navigate</div>
+            <p class="feat-desc">
+              Click any static route to jump to it. No typing, no copying URLs.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">02</div>
+            <div class="feat-title">Active highlight</div>
+            <p class="feat-desc">
+              The current page is always highlighted so you know exactly where
+              you are.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">03</div>
+            <div class="feat-title">Route tags</div>
+            <p class="feat-desc">
+              Dynamic, SSR, endpoint, and redirect routes are clearly labelled
+              at a glance.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">04</div>
+            <div class="feat-title">Searchable</div>
+            <p class="feat-desc">
+              Filter by URL pattern or file path in real time across all routes.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">05</div>
+            <div class="feat-title">Live updates</div>
+            <p class="feat-desc">
+              New pages added while the dev server is running appear
+              immediately.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">06</div>
+            <div class="feat-title">Dev-only</div>
+            <p class="feat-desc">
+              Completely stripped in
+              <code
+                style="
+                  font-family: var(--ff);
+                  font-size: 11px;
+                  color: var(--blue);
+                "
+                >astro build</code
+              >. Zero production cost.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section fade-up">
+        <p class="eye">route types</p>
+        <h2 class="sec-title">Every type, clearly labelled.</h2>
+        <p class="sec-desc">
+          Tags tell you what each route can do at a glance.
+        </p>
+        <div class="route-types">
+          <div class="rt-row">
+            <span class="rt-tag none">static</span>
+            <p class="rt-desc">
+              Prerendered at build time. Click in the panel to jump to it
+              instantly.
+            </p>
+          </div>
+          <div class="rt-row">
+            <span class="rt-tag dyn">dynamic</span>
+            <p class="rt-desc">
+              Route has
+              <code style="font-family: var(--ff); color: var(--amber)"
+                >[param]</code
+              >
+              or
+              <code style="font-family: var(--ff); color: var(--amber)"
+                >[...slug]</code
+              >
+              segments — can't navigate without a real value.
+            </p>
+          </div>
+          <div class="rt-row">
+            <span class="rt-tag ssr">SSR</span>
+            <p class="rt-desc">
+              Rendered on-demand (<code
+                style="font-family: var(--ff); color: var(--red)"
+                >prerender: false</code
+              >). Server-rendered on every request.
+            </p>
+          </div>
+          <div class="rt-row">
+            <span class="rt-tag ep">endpoint</span>
+            <p class="rt-desc">
+              API route — a
+              <code style="font-family: var(--ff); color: var(--blue)"
+                >.ts</code
+              >
+              or
+              <code style="font-family: var(--ff); color: var(--blue)"
+                >.js</code
+              >
+              file in
+              <code style="font-family: var(--ff); color: var(--blue)"
+                >src/pages/</code
+              >
+              that returns data instead of HTML.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section fade-up" id="options">
+        <p class="eye">configuration</p>
+        <h2 class="sec-title">Add it. It just works.</h2>
+        <p class="sec-desc">
+          Zero config required. Filter routes when your project grows.
+        </p>
+        <div class="terminal" style="margin-bottom: 36px">
+          <div class="t-bar">
+            <span class="t-dot r"></span><span class="t-dot y"></span
+            ><span class="t-dot g"></span
+            ><span class="t-title">astro.config.mjs</span>
+          </div>
+          <div class="t-body">
+            <pre><span class="c-s">import</span> { defineConfig } <span class="c-s">from</span> <span class="c-b">'astro/config'</span>
+<span class="c-s">import</span> toolbarRoutes <span class="c-s">from</span> <span class="c-b">'@shiftescape/astro-toolbar-routes'</span>
+
+<span class="c-s">export default</span> defineConfig({
+  integrations: [
+    toolbarRoutes({
+      <span class="c-d">// hide specific routes or glob prefixes</span>
+      exclude: [<span class="c-b">'/admin'</span>, <span class="c-b">'/api/*'</span>],
+      <span class="c-d">// show _astro/* and _server_islands/* internal routes</span>
+      showInternalRoutes: <span class="c-a">false</span>,
+    }),
+  ],
+})</pre>
+          </div>
+        </div>
+        <table class="opts">
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-n">exclude</td>
+              <td class="td-t">string[]</td>
+              <td class="td-d">[]</td>
+              <td class="td-d">
+                Route patterns to hide. Supports exact match and
+                <code style="font-family: var(--ff); color: var(--blue)"
+                  >*</code
+                >
+                suffix wildcard.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-n">showInternalRoutes</td>
+              <td class="td-t">boolean</td>
+              <td class="td-d">false</td>
+              <td class="td-d">
+                Show Astro's internal routes like
+                <code style="font-family: var(--ff); color: var(--blue)"
+                  >/_astro/*</code
+                >
+                and
+                <code style="font-family: var(--ff); color: var(--blue)"
+                  >/_server_islands/*</code
+                >.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section fade-up" id="install">
+        <p class="eye">install</p>
+        <h2 class="sec-title">Two minutes to set up.</h2>
+        <p class="sec-desc">
+          Works with Astro 4, 5, and 6. Peer dependency only.
+        </p>
+        <div class="install-block">
+          <div class="install-row">
+            <span class="install-pm">npm</span
+            ><span class="install-cmd"
+              >npm install -D
+              <span>@shiftescape/astro-toolbar-routes</span></span
+            ><button
+              class="copy-btn"
+              data-copy="npm install -D @shiftescape/astro-toolbar-routes"
+            >
+              copy
+            </button>
+          </div>
+          <div class="install-row">
+            <span class="install-pm">pnpm</span
+            ><span class="install-cmd"
+              >pnpm add -D <span>@shiftescape/astro-toolbar-routes</span></span
+            ><button
+              class="copy-btn"
+              data-copy="pnpm add -D @shiftescape/astro-toolbar-routes"
+            >
+              copy
+            </button>
+          </div>
+          <div class="install-row">
+            <span class="install-pm">yarn</span
+            ><span class="install-cmd"
+              >yarn add -D <span>@shiftescape/astro-toolbar-routes</span></span
+            ><button
+              class="copy-btn"
+              data-copy="yarn add -D @shiftescape/astro-toolbar-routes"
+            >
+              copy
+            </button>
+          </div>
+        </div>
+        <div class="terminal" style="margin-top: 24px">
+          <div class="t-bar">
+            <span class="t-dot r"></span><span class="t-dot y"></span
+            ><span class="t-dot g"></span
+            ><span class="t-title">zero-config usage</span>
+          </div>
+          <div class="t-body">
+            <pre><span class="c-s">import</span> toolbarRoutes <span class="c-s">from</span> <span class="c-b">'@shiftescape/astro-toolbar-routes'</span>
+
+<span class="c-s">export default</span> defineConfig({
+  integrations: [toolbarRoutes()]  <span class="c-d">// click 🗺 in the dev toolbar</span>
+})</pre>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <span
+          >Built by
+          <a
+            href="https://github.com/shiftEscape"
+            target="_blank"
+            rel="noopener"
+            >@shiftEscape</a
+          >
+          · MIT License</span
+        >
+        <ul class="footer-links">
+          <li>
+            <a
+              href="https://github.com/shiftEscape/astro-toolbar-routes"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.npmjs.com/package/@shiftescape/astro-toolbar-routes"
+              target="_blank"
+              rel="noopener"
+              >npm</a
+            >
+          </li>
+          <li><a href="../">← All packages</a></li>
+        </ul>
+      </footer>
+    </div>
+
+    <script>
+      document.querySelectorAll(".copy-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+            btn.textContent = "copied!";
+            btn.classList.add("copied");
+            setTimeout(() => {
+              btn.textContent = "copy";
+              btn.classList.remove("copied");
+            }, 2000);
+          });
+        });
+      });
+      const obs = new IntersectionObserver(
+        (es) =>
+          es.forEach((e) => {
+            if (e.isIntersecting) e.target.classList.add("visible");
+          }),
+        { threshold: 0.08 },
+      );
+      document.querySelectorAll(".fade-up").forEach((el) => obs.observe(el));
+    </script>
+  </body>
+</html>

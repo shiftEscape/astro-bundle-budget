@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      astro-i18n-toolkit — Translation coverage map and locale switcher for
+      Astro
+    </title>
+    <meta
+      name="description"
+      content="Live i18n debugger in your Astro dev toolbar. Translation coverage map across all locales and a one-click locale switcher. Library-agnostic."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --black: #060409;
+        --card: #0c0810;
+        --border: #18101e;
+        --border2: #241630;
+        --text: #e0d0f0;
+        --sub: #6b4f8a;
+        --dim: #3a2550;
+        --rose: #fb7185;
+        --rose-hi: #fda4af;
+        --violet: #c084fc;
+        --emerald: #34d399;
+        --amber: #fbbf24;
+        --red: #f87171;
+        --ff: "DM Mono", monospace;
+        --ffs: "Playfair Display", serif;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--black);
+        color: var(--text);
+        font-family: var(--ff);
+        font-size: 14px;
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+      }
+
+      /* subtle diagonal texture */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background: repeating-linear-gradient(
+          135deg,
+          transparent,
+          transparent 24px,
+          rgba(251, 113, 133, 0.012) 24px,
+          rgba(251, 113, 133, 0.012) 25px
+        );
+      }
+
+      .glow {
+        position: fixed;
+        top: -100px;
+        right: -100px;
+        width: 600px;
+        height: 500px;
+        background: radial-gradient(
+          ellipse,
+          rgba(251, 113, 133, 0.05) 0%,
+          transparent 65%
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .page {
+        position: relative;
+        z-index: 1;
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 28px 0 24px;
+        border-bottom: 1px solid var(--border);
+        opacity: 0;
+        animation: fade-up 0.5s 0.1s forwards;
+      }
+
+      .nav-logo {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--rose);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .nav-globe {
+        width: 15px;
+        height: 15px;
+        opacity: 0.8;
+        animation: spin 8s linear infinite;
+      }
+      @keyframes spin {
+        from {
+          transform: rotate(0);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 4px;
+        list-style: none;
+      }
+      .nav-links a {
+        font-size: 12px;
+        color: var(--sub);
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+      .nav-links a:hover {
+        color: var(--text);
+        background: var(--border2);
+      }
+
+      .hero {
+        padding: 80px 0 64px;
+        opacity: 0;
+        animation: fade-up 0.6s 0.2s forwards;
+      }
+
+      .hero-eye {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        color: var(--sub);
+        text-transform: uppercase;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .hero-eye::before {
+        content: "";
+        display: inline-block;
+        width: 28px;
+        height: 1px;
+        background: var(--rose);
+        opacity: 0.4;
+      }
+
+      .hero h1 {
+        font-family: var(--ffs);
+        font-style: italic;
+        font-weight: 400;
+        font-size: clamp(40px, 7vw, 72px);
+        line-height: 0.95;
+        letter-spacing: -0.02em;
+        color: var(--text);
+        margin-bottom: 28px;
+      }
+      .hero h1 em {
+        font-style: normal;
+        display: block;
+        margin-top: 6px;
+      }
+      .hero h1 em span {
+        background: linear-gradient(90deg, var(--rose), var(--violet));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero-sub {
+        font-size: 14px;
+        color: var(--sub);
+        max-width: 460px;
+        line-height: 1.7;
+        margin-bottom: 36px;
+      }
+      .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        font-family: var(--ff);
+        font-size: 12px;
+        font-weight: 500;
+        padding: 9px 18px;
+        border-radius: 6px;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .btn-primary {
+        background: var(--rose);
+        color: #1a0008;
+        border-color: var(--rose);
+      }
+      .btn-primary:hover {
+        background: var(--rose-hi);
+        border-color: var(--rose-hi);
+      }
+      .btn-ghost {
+        color: var(--sub);
+        border-color: var(--border2);
+      }
+      .btn-ghost:hover {
+        color: var(--text);
+        border-color: var(--sub);
+        background: var(--border);
+      }
+
+      .terminal {
+        background: #040207;
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow:
+          0 0 0 1px rgba(251, 113, 133, 0.04),
+          0 24px 64px rgba(0, 0, 0, 0.7);
+        margin: 48px 0;
+        opacity: 0;
+        animation: fade-up 0.6s 0.35s forwards;
+      }
+      .t-bar {
+        background: var(--card);
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .t-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+      }
+      .t-dot.r {
+        background: #ff5f57;
+      }
+      .t-dot.y {
+        background: #febc2e;
+      }
+      .t-dot.g {
+        background: #28c840;
+      }
+      .t-title {
+        font-size: 11px;
+        color: var(--dim);
+        margin-left: 8px;
+        flex: 1;
+        text-align: center;
+      }
+      .t-body {
+        padding: 22px 26px;
+        font-size: 12.5px;
+        line-height: 1.9;
+        overflow-x: auto;
+      }
+
+      .c-r {
+        color: var(--rose);
+      }
+      .c-rh {
+        color: var(--rose-hi);
+      }
+      .c-v {
+        color: var(--violet);
+      }
+      .c-e {
+        color: var(--emerald);
+      }
+      .c-a {
+        color: var(--amber);
+      }
+      .c-rd {
+        color: var(--red);
+      }
+      .c-d {
+        color: var(--dim);
+      }
+      .c-s {
+        color: var(--sub);
+      }
+      .bld {
+        font-weight: 500;
+      }
+
+      .section {
+        padding: 72px 0;
+        border-top: 1px solid var(--border);
+      }
+      .eye {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--dim);
+        margin-bottom: 16px;
+      }
+      .sec-title {
+        font-family: var(--ffs);
+        font-style: italic;
+        font-weight: 400;
+        font-size: clamp(24px, 3vw, 34px);
+        line-height: 1.1;
+        color: var(--text);
+        margin-bottom: 10px;
+      }
+      .sec-desc {
+        font-size: 13px;
+        color: var(--sub);
+        max-width: 480px;
+        margin-bottom: 44px;
+        line-height: 1.7;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      @media (max-width: 640px) {
+        .features {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .feat {
+        background: var(--card);
+        padding: 22px 20px;
+        transition: background 0.2s;
+      }
+      .feat:hover {
+        background: #100a16;
+      }
+      .feat-num {
+        font-size: 10px;
+        color: var(--rose);
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        margin-bottom: 10px;
+      }
+      .feat-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .feat-desc {
+        font-size: 12px;
+        color: var(--sub);
+        line-height: 1.65;
+      }
+      .feat-desc code {
+        color: var(--rose);
+        font-size: 11px;
+      }
+
+      .opts {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .opts th {
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--dim);
+        text-align: left;
+        padding: 8px 14px;
+        border-bottom: 1px solid var(--border);
+      }
+      .opts td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        line-height: 1.55;
+      }
+      .opts tr:last-child td {
+        border-bottom: none;
+      }
+      .opts tr:hover td {
+        background: var(--card);
+      }
+      .td-n {
+        color: var(--rose);
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .td-t {
+        color: var(--amber);
+      }
+      .td-d {
+        color: var(--sub);
+      }
+
+      .how-it-works {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .hiw-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .hiw-row:last-child {
+        border-bottom: none;
+      }
+      .hiw-row:hover {
+        background: var(--card);
+      }
+      .hiw-n {
+        font-size: 10px;
+        color: var(--rose);
+        font-weight: 500;
+        min-width: 24px;
+        padding-top: 2px;
+      }
+      .hiw-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+      .hiw-desc {
+        font-size: 12px;
+        color: var(--sub);
+        line-height: 1.6;
+      }
+
+      .install-block {
+        background: var(--card);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .install-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--border);
+      }
+      .install-row:last-child {
+        border-bottom: none;
+      }
+      .install-pm {
+        font-size: 11px;
+        color: var(--dim);
+        min-width: 32px;
+      }
+      .install-cmd {
+        font-size: 12px;
+        color: var(--text);
+        flex: 1;
+      }
+      .install-cmd span {
+        color: var(--rose);
+      }
+      .copy-btn {
+        font-family: var(--ff);
+        font-size: 10px;
+        color: var(--dim);
+        background: transparent;
+        border: 1px solid var(--border2);
+        border-radius: 4px;
+        padding: 3px 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .copy-btn:hover {
+        color: var(--text);
+        border-color: var(--sub);
+      }
+      .copy-btn.copied {
+        color: var(--rose);
+        border-color: var(--rose);
+      }
+
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 32px 0 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--dim);
+      }
+      footer a {
+        color: var(--sub);
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: var(--text);
+      }
+      .footer-links {
+        display: flex;
+        gap: 18px;
+        list-style: none;
+      }
+
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(14px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .fade-up {
+        opacity: 0;
+      }
+      .fade-up.visible {
+        animation: fade-up 0.55s ease forwards;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <div class="page">
+      <nav>
+        <a href="../" class="nav-logo">
+          <svg
+            class="nav-globe"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+            <path d="M2 12h20" />
+          </svg>
+          astro-i18n-toolkit
+        </a>
+        <ul class="nav-links">
+          <li><a href="#features">features</a></li>
+          <li><a href="#options">options</a></li>
+          <li><a href="#install">install</a></li>
+          <li>
+            <a
+              href="https://github.com/shiftEscape/astro-i18n-toolkit"
+              target="_blank"
+              rel="noopener"
+              >github ↗</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.npmjs.com/package/@shiftescape/astro-i18n-toolkit"
+              target="_blank"
+              rel="noopener"
+              >npm ↗</a
+            >
+          </li>
+        </ul>
+      </nav>
+
+      <section class="hero">
+        <p class="hero-eye">@shiftescape/astro-i18n-toolkit</p>
+        <h1>
+          Translation gaps,
+          <em><span>caught before they ship.</span></em>
+        </h1>
+        <p class="hero-sub">
+          Live i18n debugger in your Astro dev toolbar. Translation coverage map
+          across all locales and a one-click locale switcher. Works with any
+          i18n library — or none at all.
+        </p>
+        <div class="hero-actions">
+          <a href="#install" class="btn btn-primary">Install</a>
+          <a
+            href="https://github.com/shiftEscape/astro-i18n-toolkit"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost"
+            >GitHub ↗</a
+          >
+          <a
+            href="https://www.npmjs.com/package/@shiftescape/astro-i18n-toolkit"
+            target="_blank"
+            rel="noopener"
+            class="btn btn-ghost"
+            >npm ↗</a
+          >
+        </div>
+      </section>
+
+      <div class="terminal">
+        <div class="t-bar">
+          <span class="t-dot r"></span><span class="t-dot y"></span
+          ><span class="t-dot g"></span>
+          <span class="t-title">i18n Toolkit — dev toolbar</span>
+        </div>
+        <div class="t-body">
+          <div>
+            <span class="c-d"> Coverage</span>
+            <span class="c-rd bld">✗ 3 missing</span>
+            <span class="c-a">~ 1 fallback</span>
+            <span class="c-d">18 keys total</span>
+          </div>
+          <br />
+          <div><span class="c-d"> Locale Complete</span></div>
+          <div>
+            <span class="c-rh bld">fr </span> <span class="c-e">94%</span>
+            <span class="c-d">17/18</span>
+          </div>
+          <div>
+            <span class="c-rh bld">de </span> <span class="c-a">83%</span>
+            <span class="c-d">15/18</span>
+          </div>
+          <div>
+            <span class="c-rh bld">es </span> <span class="c-rd">72%</span>
+            <span class="c-d">13/18</span>
+          </div>
+          <br />
+          <div>
+            <span class="c-rd bld"> ✗</span>
+            <span class="c-rh">nav.contact </span>
+            <span class="c-rd">missing: de, es</span>
+          </div>
+          <div>
+            <span class="c-rd bld"> ✗</span>
+            <span class="c-rh">footer.newsletter </span>
+            <span class="c-rd">missing: es</span>
+          </div>
+          <div>
+            <span class="c-a bld"> ~</span>
+            <span class="c-rh">hero.subtitle </span>
+            <span class="c-a">fallback: de</span>
+          </div>
+          <div>
+            <span class="c-e bld"> ✓</span> <span class="c-rh">nav.home </span>
+            <span class="c-d">complete</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="section fade-up" id="features">
+        <p class="eye">features</p>
+        <h2 class="sec-title">Know your i18n coverage, always.</h2>
+        <p class="sec-desc">
+          No more discovering missing translations after a deploy. Catch them in
+          dev.
+        </p>
+        <div class="features">
+          <div class="feat">
+            <div class="feat-num">01</div>
+            <div class="feat-title">Coverage map</div>
+            <p class="feat-desc">
+              Every key colour-coded: green complete, amber fallback, red
+              missing — per locale.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">02</div>
+            <div class="feat-title">Per-locale %</div>
+            <p class="feat-desc">
+              Coverage percentage per locale so you instantly know which ones
+              need the most work.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">03</div>
+            <div class="feat-title">Locale switcher</div>
+            <p class="feat-desc">
+              One click switches the active locale via middleware. No URL
+              editing required.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">04</div>
+            <div class="feat-title">Searchable</div>
+            <p class="feat-desc">
+              Filter keys by name or reference value in real time across all
+              locales.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">05</div>
+            <div class="feat-title">Library-agnostic</div>
+            <p class="feat-desc">
+              Reads JSON or YAML files directly. Works alongside
+              <code>astro-i18next</code>, Paraglide, or none.
+            </p>
+          </div>
+          <div class="feat">
+            <div class="feat-num">06</div>
+            <div class="feat-title">Dev-only</div>
+            <p class="feat-desc">
+              Middleware and toolbar stripped in <code>astro build</code>. Zero
+              production footprint.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section fade-up">
+        <p class="eye">how the locale switcher works</p>
+        <h2 class="sec-title">Switch locales without touching the URL.</h2>
+        <p class="sec-desc">
+          A clean three-step flow with no persistent state.
+        </p>
+        <div class="how-it-works">
+          <div class="hiw-row">
+            <div class="hiw-n">01</div>
+            <div>
+              <div class="hiw-title">Click a locale in the toolbar</div>
+              <p class="hiw-desc">
+                The panel shows buttons for every locale in your
+                <code style="color: var(--rose)">config.i18n.locales</code>.
+                Click one.
+              </p>
+            </div>
+          </div>
+          <div class="hiw-row">
+            <div class="hiw-n">02</div>
+            <div>
+              <div class="hiw-title">Server computes the redirect URL</div>
+              <p class="hiw-desc">
+                The integration computes the correct locale-prefixed path and
+                sends it back to the client as a short-lived cookie.
+              </p>
+            </div>
+          </div>
+          <div class="hiw-row">
+            <div class="hiw-n">03</div>
+            <div>
+              <div class="hiw-title">Middleware redirects and clears</div>
+              <p class="hiw-desc">
+                The injected
+                <code style="color: var(--rose)">pre</code> middleware reads the
+                cookie, redirects to the target URL, and immediately expires the
+                cookie — no persistent state.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section fade-up" id="options">
+        <p class="eye">configuration</p>
+        <h2 class="sec-title">Point it at your locale files.</h2>
+        <p class="sec-desc">
+          If you use Astro's built-in
+          <code style="color: var(--rose)">i18n</code> config, locales are
+          detected automatically.
+        </p>
+        <div class="terminal" style="margin-bottom: 36px">
+          <div class="t-bar">
+            <span class="t-dot r"></span><span class="t-dot y"></span
+            ><span class="t-dot g"></span
+            ><span class="t-title">astro.config.mjs</span>
+          </div>
+          <div class="t-body">
+            <pre><span class="c-s">import</span> { defineConfig } <span class="c-s">from</span> <span class="c-r">'astro/config'</span>
+<span class="c-s">import</span> i18nToolkit <span class="c-s">from</span> <span class="c-r">'@shiftescape/astro-i18n-toolkit'</span>
+
+<span class="c-s">export default</span> defineConfig({
+  i18n: {
+    defaultLocale: <span class="c-r">'en'</span>,
+    locales: [<span class="c-r">'en'</span>, <span class="c-r">'fr'</span>, <span class="c-r">'de'</span>],
+  },
+  integrations: [
+    i18nToolkit({
+      localesDir:     <span class="c-r">'./src/locales'</span>,  <span class="c-d">// default</span>
+      defaultLocale:  <span class="c-r">'en'</span>,             <span class="c-d">// reference locale</span>
+      format:         <span class="c-r">'json'</span>,           <span class="c-d">// 'json' | 'yaml'</span>
+    }),
+  ],
+})</pre>
+          </div>
+        </div>
+        <table class="opts">
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-n">localesDir</td>
+              <td class="td-t">string</td>
+              <td class="td-d">'./src/locales'</td>
+              <td class="td-d">
+                Path to locale files, relative to project root.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-n">defaultLocale</td>
+              <td class="td-t">string</td>
+              <td class="td-d">'en'</td>
+              <td class="td-d">
+                Reference locale — all others compared against this for the
+                coverage map.
+              </td>
+            </tr>
+            <tr>
+              <td class="td-n">format</td>
+              <td class="td-t">'json' | 'yaml'</td>
+              <td class="td-d">'json'</td>
+              <td class="td-d">
+                File format of translation files. YAML support is built-in, no
+                extra deps needed.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section fade-up" id="install">
+        <p class="eye">install</p>
+        <h2 class="sec-title">Works with any i18n setup.</h2>
+        <p class="sec-desc">
+          Reads locale files directly from disk — no library coupling, no
+          adapter needed.
+        </p>
+        <div class="install-block">
+          <div class="install-row">
+            <span class="install-pm">npm</span
+            ><span class="install-cmd"
+              >npm install -D <span>@shiftescape/astro-i18n-toolkit</span></span
+            ><button
+              class="copy-btn"
+              data-copy="npm install -D @shiftescape/astro-i18n-toolkit"
+            >
+              copy
+            </button>
+          </div>
+          <div class="install-row">
+            <span class="install-pm">pnpm</span
+            ><span class="install-cmd"
+              >pnpm add -D <span>@shiftescape/astro-i18n-toolkit</span></span
+            ><button
+              class="copy-btn"
+              data-copy="pnpm add -D @shiftescape/astro-i18n-toolkit"
+            >
+              copy
+            </button>
+          </div>
+          <div class="install-row">
+            <span class="install-pm">yarn</span
+            ><span class="install-cmd"
+              >yarn add -D <span>@shiftescape/astro-i18n-toolkit</span></span
+            ><button
+              class="copy-btn"
+              data-copy="yarn add -D @shiftescape/astro-i18n-toolkit"
+            >
+              copy
+            </button>
+          </div>
+        </div>
+        <div class="terminal" style="margin-top: 24px">
+          <div class="t-bar">
+            <span class="t-dot r"></span><span class="t-dot y"></span
+            ><span class="t-dot g"></span
+            ><span class="t-title">locale file structure</span>
+          </div>
+          <div class="t-body">
+            <pre><span class="c-d">src/locales/</span>
+  <span class="c-e">en.json</span>   <span class="c-d">← reference locale</span>
+  <span class="c-rh">fr.json</span>
+  <span class="c-rh">de.json</span>
+
+<span class="c-d">// en.json</span>
+{
+  <span class="c-r">"nav"</span>: { <span class="c-r">"home"</span>: <span class="c-v">"Home"</span>, <span class="c-r">"about"</span>: <span class="c-v">"About"</span> },
+  <span class="c-r">"hero"</span>: { <span class="c-r">"title"</span>: <span class="c-v">"Welcome"</span> }
+}</pre>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <span
+          >Built by
+          <a
+            href="https://github.com/shiftEscape"
+            target="_blank"
+            rel="noopener"
+            >@shiftEscape</a
+          >
+          · MIT License</span
+        >
+        <ul class="footer-links">
+          <li>
+            <a
+              href="https://github.com/shiftEscape/astro-i18n-toolkit"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://www.npmjs.com/package/@shiftescape/astro-i18n-toolkit"
+              target="_blank"
+              rel="noopener"
+              >npm</a
+            >
+          </li>
+          <li><a href="../">← All packages</a></li>
+        </ul>
+      </footer>
+    </div>
+
+    <script>
+      document.querySelectorAll(".copy-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+            btn.textContent = "copied!";
+            btn.classList.add("copied");
+            setTimeout(() => {
+              btn.textContent = "copy";
+              btn.classList.remove("copied");
+            }, 2000);
+          });
+        });
+      });
+      const obs = new IntersectionObserver(
+        (es) =>
+          es.forEach((e) => {
+            if (e.isIntersecting) e.target.classList.add("visible");
+          }),
+        { threshold: 0.08 },
+      );
+      document.querySelectorAll(".fade-up").forEach((el) => obs.observe(el));
+    </script>
+  </body>
+</html>
