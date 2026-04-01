@@ -14,7 +14,7 @@
     "dev-toolbar",
     "tooling"
   ],
-  "homepage": "https://github.com/shiftEscape/astro-integrations/tree/main/packages/astro-bundle-budget#readme",
+  "homepage": "https://shiftescape.github.io/astro-integrations/astro-bundle-budget",
   "bugs": {
     "url": "https://github.com/shiftescape/astro-integrations/issues"
   },
